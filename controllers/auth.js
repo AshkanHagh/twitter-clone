@@ -16,7 +16,7 @@ exports.signup = async (req, res, next) => {
             throw error;
         }
 
-        const {username, email, phone, password} = req.body;
+        const {username, email, phone, password, gender} = req.body;
 
         const isUsernameExists = await User.find({username});
         if(!isUsernameExists) {
@@ -29,11 +29,16 @@ exports.signup = async (req, res, next) => {
         const salt = await bcrypt.genSalt(12);
         const hashedPass = await bcrypt.hash(password, salt);
 
+        const boyProfilePic = `https://avatar.iran.liara.run/public/boy?username=${username}`;
+		const girlProfilePic = `https://avatar.iran.liara.run/public/girl?username=${username}`;
+
         const user = new User({
             username,
             email,
             phone,
-            password : hashedPass
+            password : hashedPass,
+            gender,
+            profilePic :  gender === "male" ? boyProfilePic : girlProfilePic,
         });
 
         await user.save();
