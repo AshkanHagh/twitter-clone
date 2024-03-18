@@ -2,11 +2,26 @@ const { validationResult } = require('express-validator');
 const bcrypt = require('bcrypt');
 
 const User = require('../models/user');
-// this will be the twitter db
+const Message = require('../models/message');
 
 
-// this will be a function that can get all message of this user
+exports.getAllMessages = async (req, res, next) => {
 
+    try {
+        const user = await Message.find().populate('senderId', 'username');
+
+        res.status(200).json({message : 'All users is here', users : user});
+
+    } catch (error) {
+        
+        if(!error.statusCode) {
+
+            error.statusCode = 500;
+        }
+        next(error);
+    }
+
+}
 
 exports.getAllSignedUsers = async (req, res, next) => {
 
@@ -17,6 +32,11 @@ exports.getAllSignedUsers = async (req, res, next) => {
 
     } catch (error) {
         
+        if(!error.statusCode) {
+
+            error.statusCode = 500;
+        }
+        next(error);
     }
 
 }
@@ -90,6 +110,51 @@ exports.updateProfile = async (req, res, next) => {
         });
 
         res.status(201).json({message : 'Profile has been updated', userId : user._id});
+
+    } catch (error) {
+        
+        if(!error.statusCode) {
+
+            error.statusCode = 500;
+        }
+        next(error);
+    }
+
+}
+
+exports.updateMessage = async (req, res, next) => {
+
+    try {
+        const errors = validationResult(req);
+        if(!errors.isEmpty()) {
+
+            const error = new Error('invalid data from your data, please check your value');
+            error.statusCode = 422;
+            throw error;
+        }
+
+        const message = await Message.findById(req.params.id);
+        if(!message) {
+
+            const error = new Error('no message found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if(message.senderId.toString() != req.userId) {
+
+            const error = new Error("not authorized");
+            error.statusCode = 403;
+            throw error;
+        }
+
+        const updatedUser = await Message.updateOne({
+            $set : {
+                message : req.body.message
+            }
+        });
+
+        res.status(201).json({message : 'message has been updated', messageId : message._id});
 
     } catch (error) {
         

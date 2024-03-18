@@ -5,6 +5,7 @@ const cors = require('cors');
 
 const authRouter = require('./routes/auth');
 const userRouter = require('./routes/user');
+const messageRouter = require('./routes/message');
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use(cors());
 
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
+app.use('/api/app', messageRouter);
 
 
 app.use((error, req, res, next) => {
