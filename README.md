@@ -7,8 +7,6 @@ Features :
 * MVC Architecture
 * JsonWebToken  based Authentication
 * User Profile Panel
-* POST / DELETE / EDIT Note
-* POST / EDIT / DELETE Comment
 * Postman testing
 
 ### Description
