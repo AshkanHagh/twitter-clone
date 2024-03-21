@@ -13,7 +13,7 @@ Features :
 
 ### Description
 
-A rest api I created to level up my skills and has authentication.for the user can add a twitte that everyone can see and only the person who owns the twitte can edit or delete the twitte. users have a personal profile panel that have POSTS/Comments Edit/Delete. everyone can comment on others post
+A rest api I created to level up my skills
 
 ### Install packages
 ```
@@ -29,3 +29,5 @@ PORT =
 ```
 npm run deva
 ```
+
+<i>Ashkan<i>
