@@ -5,7 +5,7 @@ const isAuth = require('../middlewares/verify-token');
 const userControl = require('../controllers/user');
 
 
-router.get('/', userControl.getAllMessages);
+router.get('/', isAuth, userControl.getProfile);
 
 router.get('/signed', userControl.getAllSignedUsers);
 

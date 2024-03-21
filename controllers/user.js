@@ -3,14 +3,38 @@ const bcrypt = require('bcrypt');
 
 const User = require('../models/user');
 const Message = require('../models/message');
+const Comment = require('../models/comment');
 
 
-exports.getAllMessages = async (req, res, next) => {
+exports.getProfile = async (req, res, next) => {
 
     try {
-        const user = await Message.find().populate('senderId', 'username');
+        const user = await User.findById(req.userId).select('-password');
+        if(!user) {
 
-        res.status(200).json({message : 'All users is here', users : user});
+            const error = new Error('no user found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const message = await Message.find({senderId : user._id}).populate('senderId', 'username').limit(3).sort({_id : -1});
+        if(!message) {
+
+            const error = new Error('no post found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const comment = await Comment.find({senderId : user._id}).populate('senderId', 'username');
+        if(!comment) {
+            
+            const error = new Error('no comment found');
+            error.statusCode = 422;
+            throw error;
+        }
+
+        res.status(200).json({message : 'profile loaded', user : user, message : message, comment : comment});
+        
 
     } catch (error) {
         

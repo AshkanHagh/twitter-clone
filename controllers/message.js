@@ -40,7 +40,7 @@ exports.getAllMessages = async (req, res, next) => {
     try {
         const user = await Message.find().populate('senderId', 'username');
 
-        res.status(200).json({message : 'All users is here', users : user});
+        res.status(200).json({message : 'All messages is here', users : user});
 
     } catch (error) {
         
