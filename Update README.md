@@ -25,7 +25,7 @@ PORT =
 
 ### Start the app
 ```
-npm run deva
+npm run dev
 ```
 
 <i>Ashkan<i>
