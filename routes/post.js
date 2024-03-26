@@ -18,6 +18,8 @@ router.get('/:id', postControl.getSinglePost);
 
 router.put('/like/:id', isAuth, postControl.likePost);
 
+router.put('/dislike/:id', isAuth, postControl.dislike);
+
 
 // comments route
 

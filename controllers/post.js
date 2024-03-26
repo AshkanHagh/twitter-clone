@@ -114,3 +114,38 @@ exports.likePost = async (req, res, next) => {
     }
 
 }
+
+
+exports.dislike = async (req, res, next) => {
+
+    try {
+        const post = await Post.findByIdAndUpdate(req.params.id, {
+            $pull : {
+                likeId : req.userId
+            },
+            new : true
+        });
+
+        await post.save();
+
+        const user = await User.findByIdAndUpdate(req.userId, {
+            $pull : {
+                likedPosts : post._id
+            },
+            new : true
+        });
+
+        await user.save();
+
+        res.status(201).json({message : 'post disliked'});
+
+    } catch (error) {
+        
+        if(!error.statusCode) {
+
+            error.statusCode = 500;
+        }
+        next(error);
+    }
+
+}
