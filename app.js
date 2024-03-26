@@ -3,10 +3,11 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
+// routes
 const authRouter = require('./routes/auth');
 const userRouter = require('./routes/user');
-const messageRouter = require('./routes/message');
-const commentRouter = require('./routes/comment');
+const postRouter = require('./routes/post');
+
 
 const app = express();
 
@@ -20,8 +21,7 @@ app.use(cors());
 
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
-app.use('/api/app', messageRouter);
-app.use('/api/comment', commentRouter);
+app.use('/api/app', postRouter);
 
 
 app.use((error, req, res, next) => {

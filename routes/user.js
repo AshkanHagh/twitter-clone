@@ -14,7 +14,7 @@ router.get('/profile/:id', isAuth, userControl.getUser);
 router.put('/profile/:id', [body('username').trim().notEmpty(), body('email').trim().isEmail().notEmpty(), 
 body('phone').trim().notEmpty(), body('password').trim().notEmpty()], userControl.updateProfile);
 
-router.put('/profile/message/:id', isAuth, userControl.updateMessage);
+router.put('/profile/message/:id', isAuth, userControl.updatePost);
 
 
 module.exports = router;
