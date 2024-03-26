@@ -3,7 +3,7 @@ const { validationResult } = require('express-validator');
 
 const Comment = require('../models/comment');
 const User = require('../models/user');
-const Message = require('../models/message');
+const Message = require('../models/post');
 
 
 exports.addNewComment = async (req, res, next) => {

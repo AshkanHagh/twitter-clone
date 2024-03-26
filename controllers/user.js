@@ -2,8 +2,9 @@ const { validationResult } = require('express-validator');
 const bcrypt = require('bcrypt');
 
 const User = require('../models/user');
-const Message = require('../models/message');
+const Post = require('../models/post');
 const Comment = require('../models/comment');
+// const Like = require('../models/like');
 
 
 exports.getProfile = async (req, res, next) => {
@@ -17,8 +18,8 @@ exports.getProfile = async (req, res, next) => {
             throw error;
         }
 
-        const message = await Message.find({senderId : user._id}).populate('senderId', 'username').limit(3).sort({_id : -1});
-        if(!message) {
+        const post = await Post.find({senderId : user._id}).populate('senderId', 'username').limit(3).sort({_id : -1});
+        if(!post) {
 
             const error = new Error('no post found');
             error.statusCode = 404;
@@ -29,11 +30,11 @@ exports.getProfile = async (req, res, next) => {
         if(!comment) {
             
             const error = new Error('no comment found');
-            error.statusCode = 422;
+            error.statusCode = 404;
             throw error;
         }
 
-        res.status(200).json({message : 'profile loaded', user : user, message : message, comment : comment});
+        res.status(200).json({message : 'profile loaded', user, post, comment});
         
 
     } catch (error) {
@@ -146,7 +147,7 @@ exports.updateProfile = async (req, res, next) => {
 
 }
 
-exports.updateMessage = async (req, res, next) => {
+exports.updatePost= async (req, res, next) => {
 
     try {
         const errors = validationResult(req);
@@ -157,28 +158,28 @@ exports.updateMessage = async (req, res, next) => {
             throw error;
         }
 
-        const message = await Message.findById(req.params.id);
-        if(!message) {
+        const post = await Post.findById(req.params.id);
+        if(!post) {
 
             const error = new Error('no message found');
             error.statusCode = 404;
             throw error;
         }
 
-        if(message.senderId.toString() != req.userId) {
+        if(post.senderId.toString() != req.userId) {
 
             const error = new Error("not authorized");
             error.statusCode = 403;
             throw error;
         }
 
-        const updatedUser = await Message.updateOne({
+        const updatedPost = await Post.updateOne({
             $set : {
-                message : req.body.message
+                post : req.body.post
             }
         });
 
-        res.status(201).json({message : 'message has been updated', messageId : message._id});
+        res.status(201).json({message : 'message has been updated', postId : post._id});
 
     } catch (error) {
         
