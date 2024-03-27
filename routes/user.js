@@ -11,10 +11,12 @@ router.get('/signed', userControl.getAllSignedUsers);
 
 router.get('/profile', isAuth, userControl.getUser);
 
-router.put('/profile/:id', [body('username').trim().notEmpty(), body('email').trim().isEmail().notEmpty(), 
-body('phone').trim().notEmpty(), body('password').trim().notEmpty()], userControl.updateProfile);
+router.put('/profile', [body('username').trim().notEmpty(), body('email').trim().isEmail().notEmpty(), 
+body('phone').trim().notEmpty(), body('password').trim().notEmpty()], isAuth, userControl.updateProfile);
 
-router.put('/profile/message/:id', isAuth, userControl.updatePost);
+router.put('/profile/post/:id', isAuth, userControl.updatePost);
+
+router.delete('/profile/post/:id', isAuth, userControl.deletePost);
 
 
 module.exports = router;

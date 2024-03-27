@@ -105,7 +105,7 @@ exports.updateProfile = async (req, res, next) => {
 
         const {username, email, phone, confirmPassword, password, gender} = req.body;
 
-        const user = await User.findById(req.params.id);
+        const user = await User.findById(req.userId);
         if(!user) {
 
             const error = new Error('Wrong email, please check your email');
@@ -124,7 +124,7 @@ exports.updateProfile = async (req, res, next) => {
         const salt = await bcrypt.genSalt(12);
         const hashedPass = await bcrypt.hash(password, salt);
 
-        const updatedUser = await User.updateOne({
+        const updatedUser = await user.updateOne({
             $set : {
                 username,
                 email,
@@ -173,13 +173,45 @@ exports.updatePost= async (req, res, next) => {
             throw error;
         }
 
-        const updatedPost = await Post.updateOne({
+        const updatedPost = await post.updateOne({
             $set : {
                 post : req.body.post
             }
         });
 
         res.status(201).json({message : 'message has been updated', postId : post._id});
+
+    } catch (error) {
+        
+        if(!error.statusCode) {
+
+            error.statusCode = 500;
+        }
+        next(error);
+    }
+
+}
+
+
+exports.deletePost = async (req, res, next) => {
+
+    try {
+        const post = await Post.findByIdAndDelete(req.params.id);
+        if(!post) {
+
+            const error = new Error('nothing found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const user = await User.findById(req.userId);
+
+        user.likedPosts.remove(req.params.id);
+        user.savedPosts.remove(req.params.id);
+
+        await user.save();
+
+        res.status(201).json({message : 'post has been deleted', postId : req.params.id});
 
     } catch (error) {
         
