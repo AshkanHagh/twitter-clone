@@ -21,6 +21,13 @@ router.put('/like/:id', isAuth, postControl.likePost);
 router.put('/dislike/:id', isAuth, postControl.dislike);
 
 
+// save post
+
+router.put('/savePost/:id', isAuth, postControl.savePost);
+
+router.put('/unsave/:id', isAuth, postControl.unSave);
+
+
 // comments route
 
 router.post('/comment/:id', isAuth, body('comment').trim().notEmpty(), commentControl.addNewComment);

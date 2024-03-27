@@ -2,7 +2,6 @@ const { validationResult } = require('express-validator');
 
 const Post = require('../models/post');
 const User = require('../models/user');
-// const Like = require('../models/like');
 
 
 exports.createPost = async (req, res, next) => {
@@ -138,6 +137,73 @@ exports.dislike = async (req, res, next) => {
         await user.save();
 
         res.status(201).json({message : 'post disliked'});
+
+    } catch (error) {
+        
+        if(!error.statusCode) {
+
+            error.statusCode = 500;
+        }
+        next(error);
+    }
+
+}
+
+
+exports.savePost = async (req, res, next) => {
+
+    try {
+        const post = await Post.findById(req.params.id);
+        if(!post) {
+
+            const error = new Error('nothing found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const user = await User.findByIdAndUpdate(req.userId, {
+            $push : {
+                savedPosts : post._id
+            },
+            new : true
+        });
+        
+        await user.save();
+
+        res.status(201).json({message : 'Post has been saved', postId : post._id});
+
+    } catch (error) {
+        
+        if(!error.statusCode) {
+
+            error.statusCode = 500;
+        }
+        next(error);
+    }
+
+}
+
+
+exports.unSave = async (req, res, next) => {
+
+    try {
+        const post = await Post.findById(req.params.id);
+        if(!post) {
+
+            const error = new Error('nothing found...');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const user = await User.findByIdAndUpdate(req.userId, {
+            $pull : {
+                savedPosts : post._id
+            }
+        });
+
+        await user.save();
+
+        res.status(201).json({message : 'unsaved post', postId : post._id});
 
     } catch (error) {
         

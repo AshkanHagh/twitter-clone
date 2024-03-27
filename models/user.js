@@ -38,6 +38,10 @@ const userSchema = new Schema({
         type : Schema.Types.ObjectId,
         ref : 'Post',
         // required : true
+    }],
+    savedPosts : [{
+        type : Schema.Types.ObjectId,
+        ref : 'Post'
     }]
 }, {timestamps : true});
 

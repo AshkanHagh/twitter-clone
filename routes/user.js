@@ -9,7 +9,7 @@ router.get('/', isAuth, userControl.getProfile);
 
 router.get('/signed', userControl.getAllSignedUsers);
 
-router.get('/profile/:id', isAuth, userControl.getUser);
+router.get('/profile', isAuth, userControl.getUser);
 
 router.put('/profile/:id', [body('username').trim().notEmpty(), body('email').trim().isEmail().notEmpty(), 
 body('phone').trim().notEmpty(), body('password').trim().notEmpty()], userControl.updateProfile);

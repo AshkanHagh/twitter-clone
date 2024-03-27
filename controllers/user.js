@@ -10,7 +10,7 @@ const Comment = require('../models/comment');
 exports.getProfile = async (req, res, next) => {
 
     try {
-        const user = await User.findById(req.userId).select('-password');
+        const user = await User.findById(req.userId).select('-password')//.populate(['likedPosts', 'savedPosts']);
         if(!user) {
 
             const error = new Error('no user found');
@@ -51,7 +51,7 @@ exports.getProfile = async (req, res, next) => {
 exports.getAllSignedUsers = async (req, res, next) => {
 
     try {
-        const user = await User.find().select('-password');
+        const user = await User.find().select('-password')//.populate(['likedPosts', 'savedPosts']);
 
         res.status(200).json({message : 'All users is here', users : user});
 
@@ -69,7 +69,7 @@ exports.getAllSignedUsers = async (req, res, next) => {
 exports.getUser = async (req, res, next) => {
 
     try {
-        const user = await User.findById(req.params.id);
+        const user = await User.findById(req.userId);
         if(!user) {
 
             const error = new Error('no user found');
