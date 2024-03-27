@@ -18,8 +18,8 @@ exports.signup = async (req, res, next) => {
 
         const {username, email, phone, password, gender} = req.body;
 
-        const isUsernameExists = await User.find({username});
-        if(!isUsernameExists) {
+        const isUsernameExists = await User.findOne({username});
+        if(isUsernameExists) {
 
             const error = new Error('Username already exists');
             error.statusCode = 422;

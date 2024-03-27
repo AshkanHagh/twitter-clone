@@ -4,9 +4,11 @@
 
 Features :
 
-* MVC Architecture
 * JsonWebToken  based Authentication
-* User Profile Panel
+* User Profile Panel,
+* Posts Comments
+* Likes & dislike functionality
+* Save Posts functionality
 * Postman testing
 
 ### Description
@@ -21,6 +23,7 @@ npm i
 ``` javascript
 MONGODB_URL = 
 PORT = 
+JWT_SECRET =
 ```
 
 ### Start the app
