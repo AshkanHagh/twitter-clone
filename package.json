@@ -1,26 +1,40 @@
 {
-  "name": "socket-chat-app",
-  "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
+  "name": "twitter-clone",
+  "module": "server.ts",
+  "type": "module",
   "scripts": {
-    "dev": "nodemon app.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "bcrypt": "^5.1.1",
-    "body-parser": "^1.20.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.18.3",
-    "express-validator": "^7.0.1",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.2.2",
-    "multer": "^1.4.5-lts.1"
+    "dev": "bun --watch src/server.ts",
+    "db:generate": "bunx drizzle-kit generate",
+    "db:migrate": "bun src/db/migrate.ts",
+    "db:studio": "bunx drizzle-kit studio",
+    "db:seed": "bun src/db/seed/seed.ts"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "@types/bun": "latest",
+    "@faker-js/faker": "^8.4.1",
+    "@types/bcrypt": "^5.0.2",
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/joi": "^17.2.3",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/nodemailer": "^6.4.15",
+    "drizzle-kit": "^0.21.4"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cloudinary": "^2.2.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "drizzle-orm": "^0.31.2",
+    "express": "^4.19.2",
+    "ioredis": "^5.4.1",
+    "joi": "^17.13.1",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.9.13",
+    "postgres": "^3.4.4"
   }
 }
