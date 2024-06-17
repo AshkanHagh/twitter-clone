@@ -75,6 +75,7 @@ export const NotificationTable = pgTable('notifications', {
     from : uuid('from').references(() => UserTable.id, {onDelete : 'cascade'}),
     to : uuid('to').references(() => UserTable.id, {onDelete : 'cascade'}),
     type : NotificationType('type'),
+    read : boolean('read').default(false),
     createdAt : timestamp('createdAt').defaultNow(),
     updatedAt : timestamp('updatedAt').defaultNow().$onUpdate(() => new Date()),
 });

@@ -5,9 +5,9 @@
   "scripts": {
     "dev": "bun --watch src/server.ts",
     "db:generate": "bunx drizzle-kit generate",
-    "db:migrate": "bun src/db/migrate.ts",
+    "db:migrate": "bun src/database/migrate.ts",
     "db:studio": "bunx drizzle-kit studio",
-    "db:seed": "bun src/db/seed/seed.ts",
+    "db:seed": "bun src/database/seed.ts",
     "eslint": "bunx eslint ."
   },
   "devDependencies": {

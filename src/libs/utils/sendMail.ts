@@ -7,7 +7,7 @@ type TMailOption = {
     html : string
 }
 
-const sendEmail = async (option : TMailOption) : Promise<void> => {
+export const sendEmail = async (option : TMailOption) : Promise<void> => {
 
     const transport = nodemailer.createTransport({
         host: process.env.SMTP_HOST, port: parseInt(process.env.SMTP_PORT || '587'), service : process.env.SMTP_SERVICE,
@@ -22,5 +22,3 @@ const sendEmail = async (option : TMailOption) : Promise<void> => {
 
     await transport.sendMail(mailOption);
 }
-
-export default sendEmail;

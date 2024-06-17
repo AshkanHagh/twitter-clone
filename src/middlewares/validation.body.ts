@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { ObjectSchema } from 'joi';
-import { ValidationError } from '../lib/utils/customErrors';
+import { ValidationError } from '../libs/utils';
 import { validate } from '../validations/Joi';
 
 const validationMiddleware = (schema : ObjectSchema) => {

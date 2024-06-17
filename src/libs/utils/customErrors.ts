@@ -36,21 +36,9 @@ class ResourceNotFoundError extends ErrorHandler {
     }
 }
 
-class UsernameExistsError extends ErrorHandler {
-    constructor(message : string = 'Username already exists') {
-        super(message, 409); // 409 Conflict
-    }
-}
-
 class InvalidUserIdError extends ErrorHandler {
     constructor(message : string = 'Invalid id - User not found') {
         super(message, 400);
-    }
-}
-
-class InvalidUsernameOrPasswordError extends ErrorHandler {
-    constructor(message : string = 'Invalid username or password') {
-        super(message, 401);
     }
 }
 
@@ -84,7 +72,43 @@ class PasswordDoesNotMatch extends ErrorHandler {
     }
 }
 
-export {BadRequestError, UnauthorizedError, ForbiddenError, ResourceNotFoundError, UsernameExistsError, PasswordDoesNotMatch,
-    InvalidUserIdError, InvalidUsernameOrPasswordError, LoginRequiredError, InternalServerError, AccessTokenInvalidError, ValidationError,
-    TokenRefreshError, RouteNowFoundError
+class UserNotFoundError extends ErrorHandler {
+    constructor(message : string = 'User not found') {
+        super(message, 404);
+    }
+}
+
+class InvalidVerifyCode extends ErrorHandler {
+    constructor(message : string = 'Invalid verify code') {
+        super(message, 400)
+    }
+}
+
+class EmailOrUsernameExistsError extends ErrorHandler {
+    constructor(message : string = 'Email or Username already exists') {
+        super(message, 409); // 409 Conflict
+    }
+}
+
+class InvalidEmailOrPasswordError extends ErrorHandler {
+    constructor(message : string = 'Invalid email or password') {
+        super(message, 401);
+    }
+}
+
+class RoleForbiddenError extends ErrorHandler {
+    constructor(role : string) {
+        super(`Role : ${role} is not allowed to access this resource`, 403);
+    }
+}
+
+class UpdateFollowerInfoError extends ErrorHandler {
+    constructor(message: string) {
+        super(`Failed to update follower info: ${message}`, 500);
+    }
+}
+
+export {BadRequestError, UnauthorizedError, ForbiddenError, ResourceNotFoundError, PasswordDoesNotMatch, UpdateFollowerInfoError,
+    InvalidUserIdError, LoginRequiredError, InternalServerError, AccessTokenInvalidError, ValidationError, RoleForbiddenError,
+    TokenRefreshError, RouteNowFoundError, InvalidEmailOrPasswordError, EmailOrUsernameExistsError, InvalidVerifyCode, UserNotFoundError
 };
