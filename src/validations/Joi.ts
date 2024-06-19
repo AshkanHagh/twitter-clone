@@ -27,3 +27,20 @@ export const LoginBody = Joi.object({
     email : Joi.string().email().max(255).trim(),
     password : Joi.string().min(6).trim().required()
 });
+
+export const insertProfileBody = Joi.object({
+    fullName : Joi.string().trim().max(255),
+    bio : Joi.string().trim().max(255),
+    profilePic : Joi.string().trim(), 
+    gender : Joi.string().trim().max(255)
+});
+
+export const insertAccountBody = Joi.object({
+    username : Joi.string().trim().max(255),
+    email : Joi.string().email().max(255).trim()
+});
+
+export const insertPasswordBody = Joi.object({
+    newPassword : Joi.string().min(6).trim().required(),
+    oldPassword : Joi.string().min(6).trim().required()
+});
