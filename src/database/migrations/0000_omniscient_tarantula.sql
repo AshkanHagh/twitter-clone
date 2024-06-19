@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS "notifications" (
 	"from" uuid,
 	"to" uuid,
 	"type" "type",
+	"read" boolean DEFAULT false,
 	"createdAt" timestamp DEFAULT now(),
 	"updatedAt" timestamp DEFAULT now()
 );
@@ -74,6 +75,7 @@ CREATE TABLE IF NOT EXISTS "save_posts" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "profiles" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"userId" uuid,
 	"fullName" varchar(255),
 	"bio" varchar(255),

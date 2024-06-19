@@ -1,5 +1,5 @@
 {
-  "id": "3ec9416c-c7b3-4ec0-8781-25831700653c",
+  "id": "cfb09092-a90a-4fd7-b0af-da922d7a0e1f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -147,6 +147,13 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
+        },
+        "read": {
+          "name": "read",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
         },
         "createdAt": {
           "name": "createdAt",
@@ -494,6 +501,13 @@
       "name": "profiles",
       "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
         "userId": {
           "name": "userId",
           "type": "uuid",

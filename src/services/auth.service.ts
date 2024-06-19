@@ -1,23 +1,24 @@
-import type { TInferSelectUser, TVerifyActivationToken } from '../@types';
+import type { TErrorHandler, TInferSelectUser, TInferSelectUserNoPass, TUserWithProfileInfo, TVerifyActivationToken } from '../@types';
 import { findInHashCache } from '../database/cache';
-import { findFirstUser, insertUserAuthInfo } from '../database/queries/user.model';
-import userEventEmitter from '../events/auth.event';
+import { findFirstUser, insertUserAuthInfo } from '../database/queries/user.query';
+import emailEventEmitter from '../events/email.event';
 import { EmailOrUsernameExistsError, InvalidEmailOrPasswordError, InvalidVerifyCode, LoginRequiredError, TokenRefreshError, comparePassword, createActivationToken, decodedToken, hashPassword, verifyActivationToken } from '../libs/utils';
 import ErrorHandler from '../libs/utils/errorHandler';
 
 export const registerService = async (username : string, email : string, password : string) : Promise<string> => {
     try {
-        const isUserExists : TInferSelectUser | undefined = await findFirstUser(email, username, undefined);
+        const isUserExists : TInferSelectUserNoPass | undefined = await findFirstUser(email, username, undefined);
         if(isUserExists) throw new EmailOrUsernameExistsError();
         
         const hashedPassword : string = await hashPassword(password);
-        const user = {username, email, password : hashedPassword} as TInferSelectUser;
+        const user = {username : username.toLowerCase(), email : email.toLowerCase(), password : hashedPassword} as TInferSelectUser;
 
         const { activationCode, activationToken } = createActivationToken(user);
-        userEventEmitter.emit('registerEmail', email, activationCode);
+        emailEventEmitter.emit('registerEmail', email, activationCode);
         return activationToken;
         
-    } catch (error : any) {
+    } catch (err) {
+        const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 }
@@ -28,40 +29,43 @@ export const verifyAccountService = async (activationToken : string, activationC
         if(token.activationCode !== activationCode) throw new InvalidVerifyCode();
 
         const { username, email, password } = token.user;
-        const isUserExists : TInferSelectUser | undefined = await findFirstUser(email, username.toLowerCase(), undefined);
+        const isUserExists : TInferSelectUserNoPass | undefined = await findFirstUser(email, username.toLowerCase(), undefined);
         if(isUserExists) throw new EmailOrUsernameExistsError();
 
         insertUserAuthInfo(email, username, password);
         
-    } catch (error : any) {
+    } catch (err) {
+        const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 }
 
-export const loginService = async (email : string | undefined, username : string | undefined, password : string) : Promise<TInferSelectUser> => {
+export const loginService = async (email : string | undefined, username : string | undefined, password : string) : Promise<TUserWithProfileInfo> => {
     try {
-        const isUserExists : TInferSelectUser | undefined = await findFirstUser(email, username, undefined);
+        const isUserExists : TUserWithProfileInfo | undefined = await findFirstUser(email?.toLowerCase(), username?.toLowerCase(), undefined);
         const isPasswordMatch : boolean = await comparePassword(password, isUserExists?.password || '');
 
         if(!isUserExists || !isPasswordMatch) throw new InvalidEmailOrPasswordError();
         return isUserExists;
         
-    } catch (error : any) {
-        throw new ErrorHandler(`An error occurred : ${error.message}`, 400);
+    } catch (err) {
+        const error = err as TErrorHandler;
+        throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 }
 
-export const refreshTokenService = async (refreshToken : string) : Promise<TInferSelectUser> => {
+export const refreshTokenService = async (refreshToken : string) : Promise<TUserWithProfileInfo> => {
     try {
         const decoded : TInferSelectUser = decodedToken(refreshToken);
         if(!decoded) throw new LoginRequiredError();
 
-        const session : TInferSelectUser = await findInHashCache(`user:${decoded.id}`);
+        const session : TUserWithProfileInfo = await findInHashCache(`user:${decoded.id}`);
         if(Object.keys(session).length <= 0) throw new TokenRefreshError();
 
         return session;
         
-    } catch (error : any) {
-        throw new ErrorHandler(`An error occurred : ${error.message}`, 400);
+    } catch (err) {
+        const error = err as TErrorHandler;
+        throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 }

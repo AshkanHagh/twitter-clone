@@ -1,9 +1,9 @@
 import type { Request, Response, NextFunction } from 'express';
 import { CatchAsyncError } from '../middlewares/catchAsyncError';
-import type { TActivationToken, TInferSelectUser } from '../@types';
+import type { TActivationToken, TInferSelectUser, TUserWithProfileInfo } from '../@types';
 import { loginService, refreshTokenService, registerService, verifyAccountService } from '../services/auth.service';
 import { sendToken } from '../libs/utils';
-import { deleteFromCache } from '../database/cache';
+import { deleteFromCache } from '../database/cache/global.cache';
 
 export const register = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
@@ -22,7 +22,7 @@ export const verifyAccount = CatchAsyncError(async (req : Request, res : Respons
         await verifyAccountService(activationToken, activationCode);
         res.status(200).json({success : true, message : 'You can login now'});
         
-    } catch (error : any) {
+    } catch (error) {
         return next(error);
     }
 });
@@ -30,7 +30,7 @@ export const verifyAccount = CatchAsyncError(async (req : Request, res : Respons
 export const login = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
         const { email, username , password } = req.body as TInferSelectUser;
-        const user : TInferSelectUser = await loginService(email, username, password);
+        const user : TUserWithProfileInfo = await loginService(email, username, password);
 
         const { accessToken, user : others} = sendToken(user, res, 'login');
         res.status(200).json({success : true, user : others, accessToken});
@@ -56,7 +56,7 @@ export const logout = CatchAsyncError(async (req : Request, res : Response, next
 export const refreshToken = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
         const refreshToken : string = req.cookies.refresh_token;
-        const user : TInferSelectUser = await refreshTokenService(refreshToken);
+        const user : TUserWithProfileInfo = await refreshTokenService(refreshToken);
 
         req.user = user;
         const { accessToken } = sendToken(user, res, 'refresh');

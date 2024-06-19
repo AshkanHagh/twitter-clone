@@ -108,7 +108,14 @@ class UpdateFollowerInfoError extends ErrorHandler {
     }
 }
 
+class PasswordValidationError extends ErrorHandler {
+    constructor() {
+        super('The new password cannot be the same as the old password. Please enter a new password.', 400);
+    }
+}
+
 export {BadRequestError, UnauthorizedError, ForbiddenError, ResourceNotFoundError, PasswordDoesNotMatch, UpdateFollowerInfoError,
     InvalidUserIdError, LoginRequiredError, InternalServerError, AccessTokenInvalidError, ValidationError, RoleForbiddenError,
-    TokenRefreshError, RouteNowFoundError, InvalidEmailOrPasswordError, EmailOrUsernameExistsError, InvalidVerifyCode, UserNotFoundError
+    TokenRefreshError, RouteNowFoundError, InvalidEmailOrPasswordError, EmailOrUsernameExistsError, InvalidVerifyCode, UserNotFoundError,
+    PasswordValidationError
 };

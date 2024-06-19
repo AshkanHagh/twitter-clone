@@ -1,7 +1,8 @@
 import jwt, { type JwtPayload } from 'jsonwebtoken';
-import type { TCookieOptions, TInferSelectUser } from '../../@types';
+import type { TCookieOptions, TInferSelectUser, TInferSelectUserNoPass, TInferSelectUserProfile, TUserWithProfileInfo } from '../../@types';
 import type { Response } from 'express';
 import { InsertIntoHashCache } from '../../database/cache';
+import { combineUserProfileWithUser } from '../../services/user.service';
 
 const accessTokenExpire : number = parseInt(process.env.ACCESS_TOKEN_EXPIRE);
 const refreshTokenExpire : number = parseInt(process.env.REFRESH_TOKEN_EXPIRE);
@@ -18,19 +19,24 @@ export const refreshTokenOption = <TCookieOptions>{
     httpOnly : true, sameSite : 'lax'
 }
 
-export const sendToken = (user : TInferSelectUser, res : Response, tokenFor : 'login' | 'refresh') => {
+export const sendToken = (user : TUserWithProfileInfo, res : Response, tokenFor : 'login' | 'refresh') => {
     const accessToken : string = jwt.sign({id : user.id}, process.env.ACCESS_TOKEN, {expiresIn : '1h'});
     const refreshToken : string = jwt.sign({id : user.id}, process.env.REFRESH_TOKEN, {expiresIn : '7d'});
 
-    const {password, ...others} = user;
-    InsertIntoHashCache(`user:${others.id}`, others, 604800);
+    const filteredProfile = Object.fromEntries(
+        Object.entries(user).filter(entry => entry[1] !== null)
+    );
+    const userInfo = combineUserProfileWithUser(filteredProfile.profile as TInferSelectUserProfile || null, 
+        filteredProfile as TInferSelectUserNoPass
+    );
+    InsertIntoHashCache(`user:${user.id}`, userInfo, 604800);
     if(process.env.NODE_ENV == 'production') accessTokenOption.secure = true;
 
     res.cookie('access_token', accessToken, accessTokenOption);
     res.cookie('refresh_token', refreshToken, refreshTokenOption);
 
     if(tokenFor == 'refresh') return {accessToken};
-    return {user : others, accessToken};
+    return {user : userInfo, accessToken};
 }
 
 export const decodedToken = (refreshToken : string) => {

@@ -16,6 +16,7 @@ export const UserTable = pgTable('users', {
 
 export const UserGender = pgEnum('gender', ['male', 'female']);
 export const UserProfileTable = pgTable('profiles', {
+    id : uuid('id').primaryKey().defaultRandom(),
     userId : uuid('userId').references(() => UserTable.id, {onDelete : 'cascade'}),
     fullName : varchar('fullName', {length : 255}), 
     bio : varchar('bio', {length : 255}),

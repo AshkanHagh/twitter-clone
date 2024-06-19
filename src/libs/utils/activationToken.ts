@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import type { TActivationToken, TInferSelectUser, TVerifyActivationToken } from '../../@types';
+import type { TActivationToken, TErrorHandler, TInferSelectUser, TVerifyActivationToken } from '../../@types';
 import ErrorHandler from './errorHandler';
 
 export const createActivationToken = (user : TInferSelectUser) : TActivationToken => {
@@ -14,7 +14,8 @@ export const verifyActivationToken = (activationToken : string) : TVerifyActivat
         {user : TInferSelectUser, activationCode : string}
         return {user, activationCode};
         
-    } catch (error : any) {
+    } catch (err) {
+        const error = err as TErrorHandler;
         throw new ErrorHandler(error.message, 400);
     }
 }
