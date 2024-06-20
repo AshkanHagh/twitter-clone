@@ -73,13 +73,10 @@ export const findManyFollowing = async (currentUserId : string) : Promise<TInfer
 
 export const updateAccount = async (values : TInferUpdateUser) : Promise<TInferUpdateUser | undefined> => {
     const { email, username, password, id } = values as TInferUpdateUser;
-    console.log(password);
 
     if(password) {
-        console.log('in password');
         await db.update(UserTable).set({password}).where(eq(UserTable.id, id));
     }else {
-        console.log('not in password');
         const updatedData = await db.update(UserTable).set({email, username}).where(eq(UserTable.id, id)).returning();
         return updatedData[0] as TInferUpdateUser;
     }

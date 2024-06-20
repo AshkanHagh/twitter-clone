@@ -1,10 +1,11 @@
 import type { TErrorHandler, TInferSelectUserNoPass, TInferSelectUserProfile, TInferUpdateUser, TUpdateProfileInfo, 
     TUserProfile, TUserWithProfileInfo } from '../@types';
 import { deleteHashListCache, findInHashCache, findInHashListCache, insertHashListCache } from '../database/cache';
-import { searchByUsernameInCache, updateUserCache } from '../database/cache/user.cache';
+import { searchByUsernameInCache, searchInCache, updateUserCache } from '../database/cache/user.cache';
 import { deleteFollow, findFirstFollow, findFirstProfile, findFirstUser, insertFollow, insertProfileInfo, searchUserByUsername, 
     updateAccount, updateProfileInfo } from '../database/queries/user.query';
 import emailEventEmitter from '../events/email.event';
+import { notificationEventEmitter } from '../events/notification.event';
 import { userEventEmitter } from '../events/user.event';
 import { EmailOrUsernameExistsError, PasswordDoesNotMatch, PasswordValidationError, ResourceNotFoundError, 
     comparePassword, hashPassword } from '../libs/utils';
@@ -98,6 +99,7 @@ export const followUserService = async (currentUser : TInferSelectUserNoPass, us
                 insertHashListCache(`followings:${currentUser.id}`, userToFollowId, userToFollowProfile, 604800),
                 insertHashListCache(`followers:${userToFollowId}`, currentUser.id, currentUser, 604800)
             ]);
+            notificationEventEmitter.emit('follow', currentUser.id, userToFollowId);
             return 'User followed successfully';
         }
         await Promise.all([deleteFollow(currentUser.id, userToFollowId),
@@ -127,13 +129,17 @@ export const getUserProfileService = async (currentUser : TUserProfile) => {
 
 export const updateAccountInfoService = async (currentUser : TUserProfile, email : string, username : string) => {
     try {
-        const existingUser : TUserWithProfileInfo | undefined = await findFirstUser(email, username, undefined);
+        let existingUser : TUserProfile | undefined;
+
+        const existingCacheUser : TUserProfile | undefined = await searchInCache(email, username);
+        existingUser = existingCacheUser;
+        if(!existingCacheUser) existingUser = await findFirstUser(email, username, undefined);
         if(existingUser) throw new EmailOrUsernameExistsError();
 
         const updatedAccountInfo = {email : email || currentUser.email, username : username || currentUser.username, id : currentUser.id};
         const updatedUser : TInferUpdateUser | undefined = await updateAccount(updatedAccountInfo);
     
-        updateUserCache(updatedUser!);
+        updateUserCache(updatedUser || currentUser);
         return updatedUser;
         
     } catch (err) {

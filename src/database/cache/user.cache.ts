@@ -42,3 +42,18 @@ export const updateUserCache = async (user : TInferUpdateUser) : Promise<void> =
 
     await Promise.all([updateCacheForPattern('followers:*'), updateCacheForPattern('followings:*')]);
 };
+
+export const searchInCache = async (email : string, username : string) => {
+    let cursor : string = '0';
+    do {
+        const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'user:*', 'COUNT', 100);
+        for (const key of keys) {
+            const user : TUserProfile = await findInHashCache(key);
+            if(user.email == email || user.username == username) {
+                return user;
+            }
+        }
+
+        cursor = newCursor;
+    } while (cursor !== '0');
+}

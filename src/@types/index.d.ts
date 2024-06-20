@@ -58,3 +58,8 @@ type TInferUpdateUser = {
 type TCacheIndex = {
     [key : string] : TUserProfile;
 }
+
+type TNotificationResult = {
+    from: { username: string; profilePic: string | null | undefined; };
+    to: string | null; type: 'like' | 'follow' | null; read: boolean | null; createdAt: Date | null; updatedAt: Date | null;
+}
