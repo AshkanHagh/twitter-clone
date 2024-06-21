@@ -1,6 +1,7 @@
 import type { TErrorHandler, TInferSelectNotification, TNotificationResult, TUserProfile } from '../@types';
 import { deleteListCache, findInHashCache, findListCache } from '../database/cache';
 import { deleteNotifications, findManyNotifications } from '../database/queries/notification.query';
+import { notificationEventEmitter } from '../events/notification.event';
 import { ResourceNotFoundError } from '../libs/utils';
 import ErrorHandler from '../libs/utils/errorHandler';
 
@@ -18,6 +19,7 @@ export const getNotificationsService = async (currentUserId : string) : Promise<
             return combineNotificationToUser(userProfile, notificationData);
         }));
         if(notifications.length <= 0) throw new ResourceNotFoundError();
+        notificationEventEmitter.emit('read', currentUserId);
         return notifications;
         
     } catch (err) {
@@ -30,6 +32,7 @@ export const clearNotificationsService = async (currentUserId : string) : Promis
     try {
         await deleteNotifications(currentUserId);
         await deleteListCache(`notification:${currentUserId}`);
+        notificationEventEmitter.emit('clear', currentUserId);
         return 'Notifications Cleared';
         
     } catch (err) {

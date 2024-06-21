@@ -8,8 +8,12 @@ export const insertNotification = async (from : string, to : string, type : 'fol
     return notification[0] as TInferSelectNotification;
 }
 
-export const findManyNotifications = async (currentUserId : string) : Promise<TInferSelectNotification[]> => {
+export const updateNotification = async (currentUserId : string) => {
     await db.update(NotificationTable).set({read : true}).where(eq(NotificationTable.to, currentUserId));
+}
+
+export const findManyNotifications = async (currentUserId : string) : Promise<TInferSelectNotification[]> => {
+    await updateNotification(currentUserId);
     return await db.query.NotificationTable.findMany({
         where : (table, funcs) => funcs.eq(table.to, currentUserId),
         with : {
