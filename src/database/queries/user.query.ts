@@ -67,6 +67,10 @@ export const findManyUsers = async (currentUserId : string) : Promise<TInferSele
     return await db.query.UserTable.findMany({where : (table, funcs) => funcs.not(funcs.eq(table.id, currentUserId))});
 }
 
+export const findLimitedUsers = async () : Promise<TInferSelectUser[]> => {
+    return await db.query.UserTable.findMany();
+}
+
 export const findManyFollowing = async (currentUserId : string) : Promise<TInferSelectFollowers[]> => {
     return await db.query.FollowersTable.findMany({where : (table, funcs) => funcs.eq(table.followerId, currentUserId)});
 }

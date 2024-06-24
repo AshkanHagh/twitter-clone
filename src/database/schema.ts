@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { boolean, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, index, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 
 export const UserRole = pgEnum('role', ['user', 'admin', 'manager']);
 export const UserTable = pgTable('users', {
@@ -23,6 +23,8 @@ export const UserProfileTable = pgTable('profiles', {
     profilePic : text('profilePic'), 
     gender : UserGender('gender'),
     isBan : boolean('isBan').default(false)
+}, table => {
+    return {userIndex : index('userIndex_userTable').on(table.userId)}
 });
 
 export const FollowersTable = pgTable('followers', {
@@ -36,7 +38,11 @@ export const PostTable = pgTable('posts', {
     id : uuid('id').primaryKey().defaultRandom(),
     userId : uuid('userId').references(() => UserTable.id, {onDelete : 'cascade'}),
     text : text('text').notNull(),
-    image : text('image')
+    image : text('image'),
+    createdAt : timestamp('createdAt').defaultNow(),
+    updatedAt : timestamp('updatedAt').defaultNow().$onUpdate(() => new Date()),
+}, table => {
+    return {userIndex : index('userIndex_postTable').on(table.userId)}
 });
 
 export const CommentTable = pgTable('comments', {
@@ -45,6 +51,8 @@ export const CommentTable = pgTable('comments', {
     text : text('text').notNull(),
     createdAt : timestamp('createdAt').defaultNow(),
     updatedAt : timestamp('updatedAt').defaultNow().$onUpdate(() => new Date()),
+}, table => {
+    return {authorIndex : index('authorIndex_commentTable').on(table.authorId)}
 });
 
 export const RepliesTable = pgTable('replies', {
@@ -54,6 +62,11 @@ export const RepliesTable = pgTable('replies', {
     text : text('text').notNull(),
     createdAt : timestamp('createdAt').defaultNow(),
     updatedAt : timestamp('updatedAt').defaultNow().$onUpdate(() => new Date()),
+}, table => {
+    return {
+        commentIndex : index('commentIndex_repliesTable').on(table.commentId),
+        authorIndex : index('authorIndex_repliesTable').on(table.authorId)
+    }
 });
 
 export const PostCommentTable = pgTable('post_comments', {
@@ -70,6 +83,13 @@ export const PostLikeTable = pgTable('post_likes', {
     return {pk : primaryKey({columns : [table.postId, table.userId]})}
 });
 
+export const PostTagTable = pgTable('post_tags', {
+    postId : uuid('postId').references(() => PostTable.id),
+    tag : varchar('tag', {length : 255}).notNull()
+}, table => {
+    return {pk : primaryKey({columns : [table.postId]})}
+});
+
 export const NotificationType = pgEnum('type', ['like', 'follow']);
 export const NotificationTable = pgTable('notifications', {
     id : uuid('id').primaryKey().defaultRandom(),
@@ -79,12 +99,16 @@ export const NotificationTable = pgTable('notifications', {
     read : boolean('read').default(false),
     createdAt : timestamp('createdAt').defaultNow(),
     updatedAt : timestamp('updatedAt').defaultNow().$onUpdate(() => new Date()),
+}, table => {
+    return {fromIndex : index('fromIndex_notificationTable').on(table.from)}
 });
 
 export const SavePostTable = pgTable('save_posts', {
     id : uuid('id').primaryKey().defaultRandom(),
     postId : uuid('postId').references(() => PostTable.id),
     userId : uuid('userId').references(() => UserTable.id)
+}, table => {
+    return {postIndex : index('postIndex_saveTable').on(table.postId), userIndex : index('userIndex_saveTable').on(table.userId)}
 });
 
 export const UserTableRelations = relations(UserTable, ({one, many}) => {
@@ -132,7 +156,8 @@ export const PostTableRelations = relations(PostTable, ({one, many}) => {
             fields : [PostTable.userId], references : [UserTable.id], relationName : 'user_post'
         }),
         comments : many(PostCommentTable),
-        likes : many(PostLikeTable)
+        likes : many(PostLikeTable),
+        tags : one(PostTagTable)
     }
 });
 
@@ -200,3 +225,13 @@ export const SavePostTableRelations = relations(SavePostTable, ({one}) => {
         }),
     }
 });
+
+export const PostTagTableRelations = relations(PostTagTable, ({one}) => {
+    return {
+        post : one(PostTable, {
+            fields : [PostTagTable.postId],
+            references : [PostTable.id],
+            relationName : 'Post_tag'
+        })
+    }
+})

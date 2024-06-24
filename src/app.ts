@@ -6,6 +6,7 @@ import { ErrorMiddleware } from './middlewares/error';
 
 import authRouter from './routes/auth.route';
 import userRouter from './routes/user.route';
+import postRouter from './routes/post.route';
 
 export const app = express();
 
@@ -17,6 +18,7 @@ app.get('/', (req : Request, res : Response) => res.status(200).json({success : 
 
 app.use('/api/v2/auth', authRouter);
 app.use('/api/v2/user', userRouter);
+app.use('/api/v2/post', postRouter);
 
 app.all('*', (req : Request, res : Response, next : NextFunction) => {
     next(new RouteNowFoundError(`Route :${req.originalUrl} not found`));

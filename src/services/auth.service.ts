@@ -29,7 +29,7 @@ export const verifyAccountService = async (activationToken : string, activationC
         if(token.activationCode !== activationCode) throw new InvalidVerifyCode();
 
         const { username, email, password } = token.user;
-        const isUserExists : TInferSelectUserNoPass | undefined = await findFirstUser(email, username.toLowerCase(), undefined);
+        const isUserExists : TInferSelectUserNoPass | undefined = await findFirstUser(email.toLowerCase(), username.toLowerCase(), undefined);
         if(isUserExists) throw new EmailOrUsernameExistsError();
 
         insertUserAuthInfo(email, username, password);

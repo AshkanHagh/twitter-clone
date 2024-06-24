@@ -59,6 +59,12 @@ CREATE TABLE IF NOT EXISTS "posts" (
 	"image" text
 );
 --> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "post_tags" (
+	"postId" uuid,
+	"tag" varchar(255) NOT NULL,
+	CONSTRAINT "post_tags_postId_pk" PRIMARY KEY("postId")
+);
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "replies" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"commentId" uuid,
@@ -155,6 +161,12 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
+ ALTER TABLE "post_tags" ADD CONSTRAINT "post_tags_postId_posts_id_fk" FOREIGN KEY ("postId") REFERENCES "public"."posts"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
  ALTER TABLE "replies" ADD CONSTRAINT "replies_commentId_comments_id_fk" FOREIGN KEY ("commentId") REFERENCES "public"."comments"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
@@ -184,5 +196,13 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "authorIndex_commentTable" ON "comments" USING btree ("authorId");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "fromIndex_notificationTable" ON "notifications" USING btree ("from");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "userIndex_postTable" ON "posts" USING btree ("userId");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "commentIndex_repliesTable" ON "replies" USING btree ("commentId");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "authorIndex_repliesTable" ON "replies" USING btree ("authorId");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "postIndex_saveTable" ON "save_posts" USING btree ("postId");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "userIndex_saveTable" ON "save_posts" USING btree ("userId");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "userIndex_userTable" ON "profiles" USING btree ("userId");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "emailIndex" ON "users" USING btree ("email");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "usernameIndex" ON "users" USING btree ("username");

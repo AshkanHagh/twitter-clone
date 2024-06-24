@@ -1,5 +1,5 @@
 import type { InferSelectModel } from 'drizzle-orm';
-import type { CommentTable, FollowersTable, NotificationTable, PostCommentTable, PostLikeTable, PostTable, SavePostTable, 
+import type { CommentTable, FollowersTable, NotificationTable, PostCommentTable, PostLikeTable, PostTable, PostTagTable, SavePostTable, 
 UserProfileTable, UserTable } from '../database/schema';
 
 type TErrorHandler = {
@@ -18,6 +18,7 @@ type TInferSelectPostLike = InferSelectModel<typeof PostLikeTable>
 type TInferSelectNotification = InferSelectModel<typeof NotificationTable>
 
 type TInferSelectSavePost = InferSelectModel<typeof SavePostTable>
+type TInferSelectTag = InferSelectModel<typeof PostTagTable>;
 type TInferSelectUserNoPass = Omit<TInferSelectUser, 'password'>
 
 type TActivationToken = {
@@ -62,4 +63,31 @@ type TCacheIndex = {
 type TNotificationResult = {
     from: { username: string; profilePic: string | null | undefined; };
     to: string | null; type: 'like' | 'follow' | null; read: boolean | null; createdAt: Date | null; updatedAt: Date | null;
+}
+
+type TPostAssignments = Record<string, string>;
+
+type TPostWithUser = {
+    id : TInferSelectPost['id']; userId : string; text : TInferSelectPost['text']; image : TInferSelectPost['image']
+    user : {
+        username : TInferSelectUser['username']; email : TInferSelectUser['email']; role : TInferSelectUser['role']; 
+        createdAt : TInferSelectUser['createdAt']; updatedAt : TInferSelectUser['updatedAt'];
+    },
+    comments : {
+        comment : { 
+            id : TInferSelectComment['id']; createdAt : TInferSelectComment['createdAt']; updatedAt : TInferSelectComment['updatedAt'];
+            text : TInferSelectComment['text']; authorId : TInferSelectComment['authorId'];
+        } | null; 
+    }[];
+    likes: { 
+        user: { 
+            username : TInferSelectUser['username']; email : TInferSelectUser['email']; role : TInferSelectUser['role']; 
+            createdAt : TInferSelectUser['createdAt']; updatedAt : TInferSelectUser['updatedAt']; id : TInferSelectUser['id']
+        } | null; 
+    }[];
+    tags : { tag : TInferSelectTag['tag'] } | null
+}
+
+type likesArray = {
+    userId : string; likedCount : number;
 }
