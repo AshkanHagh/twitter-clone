@@ -1,5 +1,5 @@
-import type { TErrorHandler, TInferSelectUser, TInferSelectUserNoPass, TUserWithProfileInfo, TVerifyActivationToken } from '../@types';
-import { findInHashCache } from '../database/cache';
+import type { TErrorHandler, TInferSelectUser, TInferSelectUserNoPass, TUserWithProfileInfo, TVerifyActivationToken } from '../types/types';
+import { getAllFromHashCache } from '../database/cache/index.cache';
 import { findFirstUser, insertUserAuthInfo } from '../database/queries/user.query';
 import emailEventEmitter from '../events/email.event';
 import { EmailOrUsernameExistsError, InvalidEmailOrPasswordError, InvalidVerifyCode, LoginRequiredError, TokenRefreshError, comparePassword, createActivationToken, decodedToken, hashPassword, verifyActivationToken } from '../libs/utils';
@@ -59,7 +59,7 @@ export const refreshTokenService = async (refreshToken : string) : Promise<TUser
         const decoded : TInferSelectUser = decodedToken(refreshToken);
         if(!decoded) throw new LoginRequiredError();
 
-        const session : TUserWithProfileInfo = await findInHashCache(`user:${decoded.id}`);
+        const session : TUserWithProfileInfo = await getAllFromHashCache(`user:${decoded.id}`);
         if(Object.keys(session).length <= 0) throw new TokenRefreshError();
 
         return session;

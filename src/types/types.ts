@@ -1,44 +1,50 @@
 import type { InferSelectModel } from 'drizzle-orm';
-import type { CommentTable, FollowersTable, NotificationTable, PostCommentTable, PostLikeTable, PostTable, PostTagTable, SavePostTable, 
+import type { CommentTable, FollowersTable, NotificationTable, PostCommentTable, PostLikeTable, PostTable, PostTagTable, RepliesTable, SavePostTable, 
 UserProfileTable, UserTable } from '../database/schema';
 
-type TErrorHandler = {
+export type TErrorHandler = {
     statusCode : number; message : string;
 }
-type TInferSelectUser = InferSelectModel<typeof UserTable>
-type TInferSelectUserProfile = InferSelectModel<typeof UserProfileTable>
-type TInferSelectFollowers = InferSelectModel<typeof FollowersTable>
 
-type TInferSelectPost = InferSelectModel<typeof PostTable>
-type TInferSelectComment = InferSelectModel<typeof CommentTable>
-type TInferSelectReplies = InferSelectModel<typeof RepliesTable>
+export type TInferSelectUser = InferSelectModel<typeof UserTable>
+export type TInferSelectUserProfile = InferSelectModel<typeof UserProfileTable>
+export type TInferSelectFollowers = InferSelectModel<typeof FollowersTable>
 
-type TInferSelectPostComment = InferSelectModel<typeof PostCommentTable>
-type TInferSelectPostLike = InferSelectModel<typeof PostLikeTable>
-type TInferSelectNotification = InferSelectModel<typeof NotificationTable>
+export type TInferSelectPost = InferSelectModel<typeof PostTable>
+export type TInferSelectComment = InferSelectModel<typeof CommentTable>
+export type TInferSelectReplies = InferSelectModel<typeof RepliesTable>
 
-type TInferSelectSavePost = InferSelectModel<typeof SavePostTable>
-type TInferSelectTag = InferSelectModel<typeof PostTagTable>;
-type TInferSelectUserNoPass = Omit<TInferSelectUser, 'password'>
+export type TInferSelectPostComment = InferSelectModel<typeof PostCommentTable>
+export type TInferSelectPostLike = InferSelectModel<typeof PostLikeTable>
+export type TInferSelectNotification = InferSelectModel<typeof NotificationTable>
 
-type TActivationToken = {
+export type TInferSelectSavePost = InferSelectModel<typeof SavePostTable>
+export type TInferSelectTag = InferSelectModel<typeof PostTagTable>;
+export type TInferSelectUserNoPass = Omit<TInferSelectUser, 'password'>
+
+export type TActivationToken = {
     activationCode : string; activationToken : string;
 }
-type TCookieOptions = {
+
+export type TCookieOptions = {
     expires : Date; maxAge : number; httpOnly : boolean; sameSite : 'lax' | 'strict' | 'none' | undefined; secure? : boolean;
 }
+
 declare global {
     namespace Express {
         interface Request {user? : TInferSelectUserNoPass;}
     }
 }
-type TVerifyActivationToken = {
+
+export type TVerifyActivationToken = {
     user : TInferSelectUser; activationCode : string;
 }
-type TUpdateProfileInfo = {
+
+export type TUpdateProfileInfo = {
     fullName : string; bio : string; profilePic : string; gender : 'male' | 'female'; userId : string;
 }
-type TUserWithProfileInfo = {
+
+export type TUserWithProfileInfo = {
     id : TInferSelectUser['id']; username : TInferSelectUser['username']; email : TInferSelectUser['email']; role : TInferSelectUser['role']; 
     password? : TInferSelectUser['password']; createdAt : TInferSelectUser['createdAt']; updatedAt : TInferSelectUser['updatedAt'];
     profile : {
@@ -46,48 +52,55 @@ type TUserWithProfileInfo = {
         gender : TInferSelectUserProfile['gender']; isBan : TInferSelectUserProfile['isBan'];
     } | null
 }
-type TUserProfile = {
+export type TUserProfile = {
     id : TInferSelectUser['id']; username : TInferSelectUser['username']; email : TInferSelectUser['email']; role : TInferSelectUser['role']; 
     password? : TInferSelectUser['password']; createdAt : TInferSelectUser['createdAt']; updatedAt : TInferSelectUser['updatedAt'];
-    fullName ?: TInferSelectUserProfile['fullName']; bio? : TInferSelectUserProfile['bio']; profilePic? : TInferSelectUserProfile['profilePic'];
+    fullName? : TInferSelectUserProfile['fullName']; bio? : TInferSelectUserProfile['bio']; profilePic? : TInferSelectUserProfile['profilePic'];
     gender? : TInferSelectUserProfile['gender']; isBan? : TInferSelectUserProfile['isBan'];
 }
-type TInferUpdateUser = {
+
+export type TInferUpdateUser = {
     id : TInferSelectUser['id']; username? : TInferSelectUser['username']; email? : TInferSelectUser['email']; role? : TInferSelectUser['role']; 
     password? : TInferSelectUser['password']; createdAt? : TInferSelectUser['createdAt']; updatedAt? : TInferSelectUser['updatedAt'];
 }
-type TCacheIndex = {
+
+export type TCacheIndex = {
     [key : string] : TUserProfile;
 }
 
-type TNotificationResult = {
+export type TNotificationResult = {
     from: { username: string; profilePic: string | null | undefined; };
-    to: string | null; type: 'like' | 'follow' | null; read: boolean | null; createdAt: Date | null; updatedAt: Date | null;
+    to: string | null; type: 'like' | 'follow' | null; read: boolean | null; createdAt : Date | null; updatedAt : Date | null;
 }
 
-type TPostAssignments = Record<string, string>;
+export type TPostAssignments = Record<string, string>;
 
-type TPostWithUser = {
-    id : TInferSelectPost['id']; userId : string; text : TInferSelectPost['text']; image : TInferSelectPost['image']
+export type TPostWithRelations = {
+    id : TInferSelectPost['id']; userId : string; text : TInferSelectPost['text']; image : TInferSelectPost['image'], 
+    createdAt : TInferSelectPost['createdAt']; updatedAt : TInferSelectPost['updatedAt'];
     user : {
         username : TInferSelectUser['username']; email : TInferSelectUser['email']; role : TInferSelectUser['role']; 
         createdAt : TInferSelectUser['createdAt']; updatedAt : TInferSelectUser['updatedAt'];
     },
-    comments : {
+    comments? : {
         comment : { 
             id : TInferSelectComment['id']; createdAt : TInferSelectComment['createdAt']; updatedAt : TInferSelectComment['updatedAt'];
             text : TInferSelectComment['text']; authorId : TInferSelectComment['authorId'];
-        } | null; 
+        }; 
     }[];
-    likes: { 
+    likes? : { 
         user: { 
             username : TInferSelectUser['username']; email : TInferSelectUser['email']; role : TInferSelectUser['role']; 
             createdAt : TInferSelectUser['createdAt']; updatedAt : TInferSelectUser['updatedAt']; id : TInferSelectUser['id']
-        } | null; 
+        }; 
     }[];
-    tags : { tag : TInferSelectTag['tag'] } | null
+    tags? : { tag : TInferSelectTag['tag'] }
 }
 
-type likesArray = {
+export type likesArray = {
     userId : string; likedCount : number;
+}
+
+export type TUserId = {
+    id : string;
 }

@@ -2,6 +2,9 @@ declare global {
   namespace NodeJS {
     interface ProcessEnv {
       PORT: string;
+      POSTGRES_USER: string;
+      POSTGRES_PASSWORD: string;
+      POSTGRES_DB: string;
       DATABASE_URL: string;
       REDIS_URL: string;
       NODE_ENV: string;
@@ -19,6 +22,7 @@ declare global {
       SMTP_MAIL: string;
       SMTP_PASSWORD: string;
       ORIGIN: string;
+      SENTRY_KEY: string;
     }
   }
 }

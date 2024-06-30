@@ -1,6 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 import type { TInferSelectFollowers, TInferSelectUser, TInferSelectUserProfile, TInferUpdateUser, TUpdateProfileInfo, 
-    TUserWithProfileInfo } from '../../@types';
+    TUserId, 
+    TUserWithProfileInfo } from '../../types/types';
 import { db } from '../db';
 import { FollowersTable, UserProfileTable, UserTable } from '../schema';
 import { escapeRegExp } from '../../libs/utils';
@@ -64,15 +65,19 @@ export const deleteFollow = async (currentUserId : string, userToFollow : string
 }
 
 export const findManyUsers = async (currentUserId : string) : Promise<TInferSelectUser[]> => {
-    return await db.query.UserTable.findMany({where : (table, funcs) => funcs.not(funcs.eq(table.id, currentUserId))});
+    return await db.query.UserTable.findMany({
+        where : (table, funcs) => funcs.ne(table.id, currentUserId), limit : 25
+    });
 }
 
-export const findLimitedUsers = async () : Promise<TInferSelectUser[]> => {
-    return await db.query.UserTable.findMany();
+export const findLimitedUsers = async () : Promise<TUserId[]> => {
+    return await db.query.UserTable.findMany({columns : {id : true}});
 }
 
-export const findManyFollowing = async (currentUserId : string) : Promise<TInferSelectFollowers[]> => {
-    return await db.query.FollowersTable.findMany({where : (table, funcs) => funcs.eq(table.followerId, currentUserId)});
+export const findManyFollowers = async (currentUserId : string) : Promise<TInferSelectFollowers[]> => {
+    return await db.query.FollowersTable.findMany({
+        where : (table, funcs) => funcs.eq(table.followerId, currentUserId), limit : 25
+    });
 }
 
 export const updateAccount = async (values : TInferUpdateUser) : Promise<TInferUpdateUser | undefined> => {
@@ -84,4 +89,11 @@ export const updateAccount = async (values : TInferUpdateUser) : Promise<TInferU
         const updatedData = await db.update(UserTable).set({email, username}).where(eq(UserTable.id, id)).returning();
         return updatedData[0] as TInferUpdateUser;
     }
+}
+
+export const findManyUsersById = async (usersId : string[], limit : number | undefined) => {
+    return await db.query.UserTable.findMany({
+        where : (table, funcs) => funcs.inArray(table.id, usersId),
+        with : {profile : {columns : {userId : false, id : false}}}, limit
+    })
 }

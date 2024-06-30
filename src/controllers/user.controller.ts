@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { CatchAsyncError } from '../middlewares/catchAsyncError';
-import type { TInferSelectUserNoPass, TInferSelectUserProfile, TInferUpdateUser, TUserProfile } from '../@types';
-import { followUserService, getUserProfileService, searchUserService, updateAccountInfoService, updateAccountPasswordService, 
+import type { TInferSelectUserNoPass, TInferSelectUserProfile, TInferUpdateUser, TUserProfile } from '../types/types';
+import { followUserService, getUserProfileService, searchUserService, suggestionForFollowService, updateAccountInfoService, updateAccountPasswordService, 
     updateProfileInfoService } from '../services/user.service';
 
 export const updateProfileInfo = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
@@ -78,3 +78,14 @@ export const updateAccountPassword = CatchAsyncError(async (req : Request, res :
         return next(error);
     }
 });
+
+export const suggestionForFollow = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
+    try {
+        const currentUserId = req.user!.id;
+        const result = await suggestionForFollowService(currentUserId);
+        res.status(200).json({success : true, result});
+        
+    } catch (error) {
+        return next(error);
+    }
+})

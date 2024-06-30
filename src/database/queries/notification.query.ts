@@ -1,4 +1,4 @@
-import type { TInferSelectNotification } from '../../@types';
+import type { TInferSelectNotification } from '../../types/types';
 import { NotificationTable } from '../schema';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';

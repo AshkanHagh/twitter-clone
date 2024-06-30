@@ -12,3 +12,8 @@ export const updateNotificationCache = async (key : string) => {
 
     await redis.eval(luaScript, 1, key);
 }
+
+export const getAndUpdateListCache = async <T>(listKey : string) : Promise<T> => {
+    await updateNotificationCache(listKey);
+    return await redis.lrange(listKey, 0, -1) as T;
+}

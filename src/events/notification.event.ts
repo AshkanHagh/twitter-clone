@@ -1,12 +1,12 @@
 import { EventEmitter } from 'node:events';
 import { deleteNotifications, insertNotification, updateNotification } from '../database/queries/notification.query';
-import { insertListCache } from '../database/cache';
+import { addToListCache } from '../database/cache/index.cache';
 
 export const notificationEventEmitter = new EventEmitter();
 
 notificationEventEmitter.on('follow', async (from : string, to : string) => {
     const notification = await insertNotification(from, to, 'follow');
-    await insertListCache(`notification:${to}`, notification, 604800);
+    await addToListCache(`notification:${to}`, notification, 604800);
 });
 
 notificationEventEmitter.on('clear', async (currentUserId : string) => {

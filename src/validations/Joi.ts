@@ -44,3 +44,8 @@ export const insertPasswordBody = Joi.object({
     newPassword : Joi.string().min(6).trim().required(),
     oldPassword : Joi.string().min(6).trim().required()
 });
+
+export const createPostBody = Joi.object({
+    text : Joi.string().trim().max(255),
+    image : Joi.string().trim()
+});

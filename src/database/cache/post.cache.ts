@@ -1,8 +1,6 @@
+import type { TPostWithRelations } from '../../types/types';
 import { redis } from '../redis';
-
-export const incrementCacheScore = async (key : string, incrementAmount : (string | number), postId : string) => {
-    await redis.zincrby(key, incrementAmount, postId);
-}
+import { getAllFromHashCache, getHashWithIndexCache, getListScore } from './index.cache';
 
 export const scanTheCache = async (scanKey : string) => {
     let cursor = '0';
@@ -11,11 +9,45 @@ export const scanTheCache = async (scanKey : string) => {
     do {
         const [newCursor, keys] = await redis.scan(cursor, 'MATCH', scanKey, 'COUNT', 100);
         for (const key of keys) {
-            const postsId = await redis.zrevrange(key, 0, -1, 'WITHSCORES');
+            const postsId = await getListScore(key);
             matchedResults.push(postsId);
         }
 
         cursor = newCursor;
     } while (cursor !== '0');
     return matchedResults.flat();
+}
+
+export const scanPostCache = async (creatorId : string) => {
+    let cursor = '0';
+    const matchedPosts : TPostWithRelations[] = [];
+
+    do {
+        const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'post:*', 'COUNT', 100);
+        for (const key of keys) {
+            const post : TPostWithRelations = await getAllFromHashCache(key);
+            if(post.userId === creatorId) {
+                matchedPosts.push(post);
+            }
+        }
+
+        cursor = newCursor;
+    } while (cursor !== '0');
+    return matchedPosts;
+}
+
+export const findManyUsersCache = async () => {
+    let cursor = '0';
+    const matchedUsers : Array<{id : string}> = [];
+
+    do {
+        const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'user:*', 'COUNT', 100);
+        for (const key of keys) {
+            const id : string = await getHashWithIndexCache(key, 'id');
+            matchedUsers.push({id});
+        }
+
+        cursor = newCursor;
+    } while (cursor !== '0');
+    return matchedUsers;
 }

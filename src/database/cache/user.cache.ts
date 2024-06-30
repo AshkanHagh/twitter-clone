@@ -1,5 +1,5 @@
-import { InsertIntoHashCache, findInHashCache } from './global.cache';
-import type { TCacheIndex, TInferSelectUserNoPass, TInferUpdateUser, TUserProfile } from '../../@types';
+import { addToHashCache, getAllFromHashCache } from './index.cache';
+import type { TCacheIndex, TInferSelectUserNoPass, TInferUpdateUser, TUserProfile } from '../../types/types';
 import { regexp } from '../../libs/utils';
 import { redis } from '../redis';
 
@@ -11,7 +11,7 @@ export const searchByUsernameInCache = async (username : string) : Promise<TUser
     do {
         const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'user:*', 'COUNT', 100);
         for (const key of keys) {
-            const user : TUserProfile = await findInHashCache(key);
+            const user : TUserProfile = await getAllFromHashCache(key);
             if(escapedQuery.test(user.username)) {matchedUsers.push(user)};
         }
         cursor = newCursor;
@@ -20,8 +20,8 @@ export const searchByUsernameInCache = async (username : string) : Promise<TUser
 }
 
 export const updateUserCache = async (user : TInferUpdateUser) : Promise<void> => {
-    await InsertIntoHashCache(`user:${user.id}`, user, 604800);
-    const updatedUser : TInferSelectUserNoPass = await findInHashCache(`user:${user.id}`);
+    await addToHashCache(`user:${user.id}`, user, 604800);
+    const updatedUser : TInferSelectUserNoPass = await getAllFromHashCache(`user:${user.id}`);
 
     const updateCacheForPattern = async (pattern : string) : Promise<void> => {
         let cursor = '0';
@@ -30,7 +30,7 @@ export const updateUserCache = async (user : TInferUpdateUser) : Promise<void> =
 
             const pipeline = redis.pipeline();
             await Promise.all(keys.map(async key => {
-                const followers : TCacheIndex = await findInHashCache<TCacheIndex>(key);
+                const followers : TCacheIndex = await getAllFromHashCache<TCacheIndex>(key);
                 if (followers[user.id]) {
                     pipeline.hset(key, user.id, JSON.stringify(updatedUser));
                 }
@@ -48,7 +48,7 @@ export const searchInCache = async (email : string, username : string) => {
     do {
         const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'user:*', 'COUNT', 100);
         for (const key of keys) {
-            const user : TUserProfile = await findInHashCache(key);
+            const user : TUserProfile = await getAllFromHashCache(key);
             if(user.email == email || user.username == username) {
                 return user;
             }

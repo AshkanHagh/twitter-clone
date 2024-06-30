@@ -1,7 +1,7 @@
 import jwt, { type JwtPayload } from 'jsonwebtoken';
-import type { TCookieOptions, TInferSelectUser, TInferSelectUserNoPass, TInferSelectUserProfile, TUserWithProfileInfo } from '../../@types';
+import type { TCookieOptions, TInferSelectUser, TInferSelectUserNoPass, TInferSelectUserProfile, TUserWithProfileInfo } from '../../types/types';
 import type { Response } from 'express';
-import { InsertIntoHashCache } from '../../database/cache';
+import { addToHashCache } from '../../database/cache/index.cache';
 import { combineUserProfileWithUser } from '../../services/user.service';
 
 const accessTokenExpire : number = parseInt(process.env.ACCESS_TOKEN_EXPIRE);
@@ -29,7 +29,7 @@ export const sendToken = (user : TUserWithProfileInfo, res : Response, tokenFor 
     const userInfo = combineUserProfileWithUser(filteredProfile.profile as TInferSelectUserProfile || null, 
         filteredProfile as TInferSelectUserNoPass
     );
-    InsertIntoHashCache(`user:${user.id}`, userInfo, 604800);
+    addToHashCache(`user:${user.id}`, userInfo, 604800);
     if(process.env.NODE_ENV == 'production') accessTokenOption.secure = true;
 
     res.cookie('access_token', accessToken, accessTokenOption);

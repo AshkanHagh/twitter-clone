@@ -1,12 +1,13 @@
 import type { Request, Response, NextFunction } from 'express';
 import { CatchAsyncError } from '../middlewares/catchAsyncError';
-import type { TInferSelectPost } from '../@types';
-import { createPostService, getPostsService, likePostService } from '../services/post.service';
+import type { TInferSelectPost, TInferSelectUserNoPass } from '../types/types';
+import { createPostService, getPostsService, postLikeService } from '../services/post.service';
 
 export const createPost = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
         const { text, image } = req.body as TInferSelectPost;
-        const result = await createPostService(req.user!.id, text, image || undefined);
+        const currentUser : TInferSelectUserNoPass = req.user!;
+        const result = await createPostService(currentUser, text, image || undefined);
         res.status(200).json({success : true, result});
         
     } catch (error) {
@@ -29,7 +30,7 @@ export const likePost = CatchAsyncError(async (req : Request, res : Response, ne
         const { id : postId } = req.params as {id : string};
         const currentUserId = req.user!.id;
 
-        const result = await likePostService(currentUserId, postId);
+        const result = await postLikeService(currentUserId, postId);
         res.status(200).json({success : true, result});
         
     } catch (error) {

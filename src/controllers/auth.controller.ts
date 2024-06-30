@@ -1,9 +1,9 @@
 import type { Request, Response, NextFunction } from 'express';
 import { CatchAsyncError } from '../middlewares/catchAsyncError';
-import type { TActivationToken, TInferSelectUser, TUserWithProfileInfo } from '../@types';
+import type { TActivationToken, TInferSelectUser, TUserWithProfileInfo } from '../types/types';
 import { loginService, refreshTokenService, registerService, verifyAccountService } from '../services/auth.service';
 import { sendToken } from '../libs/utils';
-import { deleteFromCache } from '../database/cache/global.cache';
+import { deleteFromCache } from '../database/cache/index.cache';
 
 export const register = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {

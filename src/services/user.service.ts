@@ -1,8 +1,8 @@
 import type { TErrorHandler, TInferSelectUserNoPass, TInferSelectUserProfile, TInferUpdateUser, TUpdateProfileInfo, 
-    TUserProfile, TUserWithProfileInfo } from '../@types';
-import { deleteHashListCache, findInHashCache, findInHashListCache, insertHashListCache } from '../database/cache';
+    TUserProfile, TUserWithProfileInfo } from '../types/types';
+import { removeFromHashListCache, getAllFromHashCache, getHashWithIndexCache, addHashListCache } from '../database/cache/index.cache';
 import { searchByUsernameInCache, searchInCache, updateUserCache } from '../database/cache/user.cache';
-import { deleteFollow, findFirstFollow, findFirstProfile, findFirstUser, insertFollow, insertProfileInfo, searchUserByUsername, 
+import { deleteFollow, findFirstFollow, findFirstProfile, findFirstUser, findManyUsersById, insertFollow, insertProfileInfo, searchUserByUsername, 
     updateAccount, updateProfileInfo } from '../database/queries/user.query';
 import emailEventEmitter from '../events/email.event';
 import { notificationEventEmitter } from '../events/notification.event';
@@ -10,13 +10,15 @@ import { userEventEmitter } from '../events/user.event';
 import { EmailOrUsernameExistsError, PasswordDoesNotMatch, PasswordValidationError, ResourceNotFoundError, 
     comparePassword, hashPassword } from '../libs/utils';
 import ErrorHandler from '../libs/utils/errorHandler';
+import { getListScore } from '../database/cache/index.cache';
+import { arrayToKeyValuePairs } from './post.service';
 
 export const updateProfileInfoService = async (fullName : string, bio : string, profilePic : string, gender : 'male' | 'female', 
     currentUser : TInferSelectUserNoPass
 ) => {
     try {
         let profileFromDB : TInferSelectUserProfile | undefined;
-        const profileFromCache : TInferSelectUserProfile = await findInHashCache(`profile:user:${currentUser.id}`);
+        const profileFromCache : TInferSelectUserProfile = await getAllFromHashCache(`profile:user:${currentUser.id}`);
 
         profileFromDB = profileFromCache;
         if(Object.keys(profileFromCache).length <= 0) profileFromDB = await findFirstProfile(currentUser.id);
@@ -81,29 +83,30 @@ export const followUserService = async (currentUser : TInferSelectUserNoPass, us
         let userToFollowProfile : TUserWithProfileInfo | undefined;
         let isAlreadyFollowing : unknown;
         
-        const followedUserProfileFromCache : TUserWithProfileInfo = await findInHashCache(`user:${userToFollowId}`);
-        const alreadyFollowingFromCache : TUserWithProfileInfo = await findInHashListCache(`followings:${currentUser.id}`, userToFollowId);
-
-        if(Object.keys(followedUserProfileFromCache || '').length <= 0) {
-            userToFollowProfile = await findFirstUser(undefined, undefined, userToFollowId);
-        }
-        if(Object.keys(alreadyFollowingFromCache || '').length <= 0) {
-            isAlreadyFollowing = await findFirstFollow(currentUser.id, userToFollowId);
-        }
+        const followedUserProfileFromCache : TUserWithProfileInfo = await getAllFromHashCache(`user:${userToFollowId}`);
+        const alreadyFollowingFromCache : TUserWithProfileInfo = await getHashWithIndexCache(`followings:${currentUser.id}`, userToFollowId);
 
         userToFollowProfile = followedUserProfileFromCache;
         isAlreadyFollowing = alreadyFollowingFromCache as TUserWithProfileInfo;
 
+        if(Object.keys(followedUserProfileFromCache).length <= 0) {
+            userToFollowProfile = await findFirstUser(undefined, undefined, userToFollowId);
+        }
+        if(!alreadyFollowingFromCache) {
+            isAlreadyFollowing = await findFirstFollow(currentUser.id, userToFollowId);
+        }
+
         if(!isAlreadyFollowing) {
             await Promise.all([insertFollow(currentUser.id, userToFollowId),
-                insertHashListCache(`followings:${currentUser.id}`, userToFollowId, userToFollowProfile, 604800),
-                insertHashListCache(`followers:${userToFollowId}`, currentUser.id, currentUser, 604800)
+                addHashListCache(`followings:${currentUser.id}`, userToFollowId, userToFollowProfile, 604800),
+                addHashListCache(`followers:${userToFollowId}`, currentUser.id, currentUser, 604800)
             ]);
             notificationEventEmitter.emit('follow', currentUser.id, userToFollowId);
             return 'User followed successfully';
         }
         await Promise.all([deleteFollow(currentUser.id, userToFollowId),
-            deleteHashListCache(`followings:${currentUser.id}`, userToFollowId), deleteHashListCache(`followers:${userToFollowId}`, currentUser.id)
+            removeFromHashListCache(`followings:${currentUser.id}`, userToFollowId), 
+            removeFromHashListCache(`followers:${userToFollowId}`, currentUser.id)
         ]);
         return 'User unfollowed successfully';
         
@@ -115,8 +118,8 @@ export const followUserService = async (currentUser : TInferSelectUserNoPass, us
 
 export const getUserProfileService = async (currentUser : TUserProfile) => {
     try {
-        const followersFromCache : TUserProfile = await findInHashCache(`followers:${currentUser.id}`);
-        const followingFromCache : TUserProfile = await findInHashCache(`followings:${currentUser.id}`);
+        const followersFromCache : TUserProfile = await getAllFromHashCache(`followers:${currentUser.id}`);
+        const followingFromCache : TUserProfile = await getAllFromHashCache(`followings:${currentUser.id}`);
         return {currentUserProfile : currentUser, followersCount : Object.keys(followersFromCache).length, 
             followingCount : Object.keys(followingFromCache).length
         };
@@ -167,4 +170,38 @@ export const updateAccountPasswordService = async (currentUserId : string, newPa
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
+}
+
+export const suggestionForFollowService = async (currentUserId : string) => {
+    try {
+        const suggestedUsers = await getTopLikedPostsCreators(currentUserId);
+        const followingsSuggestion = await getFollowings_Of_followings(currentUserId);
+        return [...suggestedUsers, ...followingsSuggestion];
+        
+    } catch (err) {
+        const error = err as TErrorHandler;
+        throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
+    }
+}
+
+const getTopLikedPostsCreators = async (currentUserId : string) => {
+    const likedPostUsersId = await getListScore(`posts_liked:${currentUserId}`);
+    const users = arrayToKeyValuePairs(likedPostUsersId);
+
+    const usersArray = Object.entries(users).map(([userId, likeCount]) => ({userId, likeCount : +likeCount}));
+    usersArray.sort((a, b) => b.likeCount - a.likeCount);
+    
+    const usersId = usersArray.map(user => user.userId);
+    const suggestedUsers = await findManyUsersById(usersId, 5);
+
+    return suggestedUsers;
+}
+
+const getFollowings_Of_followings = async (currentUserId : string) => {
+    const currentUserFollowings : string[] = await getAllFromHashCache(`followings:${currentUserId}`);
+    const parsedFollowings : TUserProfile[] = Object.values(currentUserFollowings).map(value => JSON.parse(value));
+
+    const followingUsers = await Promise.all(parsedFollowings.map(user => ([user.id])).flat());
+    const users = await findManyUsersById(followingUsers, 5);
+    return users;
 }

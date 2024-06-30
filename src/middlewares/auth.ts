@@ -3,8 +3,8 @@ import { CatchAsyncError } from './catchAsyncError';
 import type { NextFunction, Request, Response } from 'express';
 import ErrorHandler from '../libs/utils/errorHandler';
 import { AccessTokenInvalidError, LoginRequiredError, RoleForbiddenError } from '../libs/utils';
-import type { TErrorHandler, TInferSelectUser } from '../@types';
-import { findInHashCache } from '../database/cache';
+import type { TErrorHandler, TInferSelectUser } from '../types/types';
+import { getAllFromHashCache } from '../database/cache/index.cache';
 
 export const isAuthenticated = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
@@ -14,7 +14,7 @@ export const isAuthenticated = CatchAsyncError(async (req : Request, res : Respo
         const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN as string) as JwtPayload & TInferSelectUser;
         if(!decoded) return next(new AccessTokenInvalidError());
 
-        const user : Omit<TInferSelectUser, 'password'> = await findInHashCache(`user:${decoded.id}`);
+        const user : Omit<TInferSelectUser, 'password'> = await getAllFromHashCache(`user:${decoded.id}`);
         if(Object.keys(user).length <= 0) return next(new LoginRequiredError());
 
         req.user = user;

@@ -1,20 +1,21 @@
-import type { TErrorHandler, TInferSelectNotification, TNotificationResult, TUserProfile } from '../@types';
-import { deleteListCache, findInHashCache, findListCache } from '../database/cache';
+import type { TErrorHandler, TInferSelectNotification, TNotificationResult, TUserProfile } from '../types/types';
+import { deleteListCache, getAllFromHashCache } from '../database/cache/index.cache';
 import { deleteNotifications, findManyNotifications } from '../database/queries/notification.query';
 import { notificationEventEmitter } from '../events/notification.event';
 import { ResourceNotFoundError } from '../libs/utils';
 import ErrorHandler from '../libs/utils/errorHandler';
+import { getAndUpdateListCache } from '../database/cache/notification.cache';
 
 export const getNotificationsService = async (currentUserId : string) : Promise<(TNotificationResult | TInferSelectNotification)[]> => {
     try {
         let notifications : (TNotificationResult | TInferSelectNotification)[];
 
-        const cachedNotifications : string[] = await findListCache(`notification:${currentUserId}`);
+        const cachedNotifications : string[] = await getAndUpdateListCache(`notification:${currentUserId}`);
         if(cachedNotifications.length <= 0) notifications = await findManyNotifications(currentUserId);
         
         notifications = await Promise.all(cachedNotifications.map(async notification => {
             const notificationData : TInferSelectNotification = JSON.parse(notification);
-            const userProfile : TUserProfile = await findInHashCache(`user:${notificationData.from}`);
+            const userProfile : TUserProfile = await getAllFromHashCache(`user:${notificationData.from}`);
 
             return combineNotificationToUser(userProfile, notificationData);
         }));
