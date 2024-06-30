@@ -202,6 +202,9 @@ const getFollowings_Of_followings = async (currentUserId : string) => {
     const parsedFollowings : TUserProfile[] = Object.values(currentUserFollowings).map(value => JSON.parse(value));
 
     const followingUsers = await Promise.all(parsedFollowings.map(user => ([user.id])).flat());
-    const users = await findManyUsersById(followingUsers, 5);
-    return users;
+    if(followingUsers.length !== 0) {
+        const users = await findManyUsersById(followingUsers, 5);
+        return users;
+    }
+    return [];
 }
