@@ -1,6 +1,6 @@
 import type { TPostWithRelations } from '../../types/types';
 import { redis } from '../redis';
-import { getAllFromHashCache, getHashWithIndexCache, getListScore } from './index.cache';
+import { getAllFromHashCache, getHashWithIndexCache, getListScore, removeScoreCache } from './index.cache';
 
 export const scanTheCache = async (scanKey : string) => {
     let cursor = '0';
@@ -50,4 +50,16 @@ export const findManyUsersCache = async () => {
         cursor = newCursor;
     } while (cursor !== '0');
     return matchedUsers;
+}
+
+export const removeIndexFromMultipleListCache = async (postId : string) => {
+    let cursor = '0';
+    do {
+        const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'posts_liked:*', 'COUNT', 100);
+        for (const key of keys) {
+            await removeScoreCache(key, postId);
+        }
+
+        cursor = newCursor;
+    } while (cursor !== '0');
 }

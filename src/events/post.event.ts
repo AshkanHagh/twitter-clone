@@ -1,7 +1,10 @@
 import { EventEmitter } from 'node:events';
-import { findFirstPost, findManyPosts } from '../database/queries/post.query';
-import { addToHashCache } from '../database/cache/index.cache';
+import { deleteFirstPost, deleteLikePost, findFirstPost, findManyPosts, insertLikePost } from '../database/queries/post.query';
+import { addToHashCache, addToListWithScore, deleteFromCache, getListScore, removeScoreCache } from '../database/cache/index.cache';
 import type { TPostWithRelations } from '../types/types';
+import { removeIndexFromMultipleListCache } from '../database/cache/post.cache';
+import { insertNotification } from '../database/queries/notification.query';
+import { arrayToKeyValuePairs } from '../services/post.service';
 
 export const postEventEmitter = new EventEmitter();
 
@@ -29,3 +32,37 @@ postEventEmitter.on('updated-post', async (postId : string) => {
         };
     addToHashCache(`post:${post.id}`, fixedResult, 2419200);
 });
+
+postEventEmitter.on('delete-post', async (userId : string, postId : string) => {
+    await Promise.all([
+        deleteFirstPost(postId), deleteFromCache(`post:${postId}`),
+        removeScoreCache(`suggest_post:${userId}`, postId),
+        removeIndexFromMultipleListCache(postId),
+    ])
+})
+
+postEventEmitter.on('like-post', async (currentUserId : string, userId : string, postId : string) => {
+    await Promise.all([
+        await insertNotification(currentUserId, userId, 'like'),
+        await insertLikePost(currentUserId, postId)
+    ]);
+
+    addToListWithScore(`posts_liked:${currentUserId}`, 1, userId);
+    addToListWithScore(`suggest_post:${userId}`, 3, postId);
+    postEventEmitter.emit('updated-post', postId);
+})
+
+postEventEmitter.on('dislike-post', async (currentUserId : string, userId : string, postId : string) => {
+    await deleteLikePost(currentUserId, postId);
+    const likesArray : string[] = await getListScore(`posts_liked:${currentUserId}`);
+    const likeObject = arrayToKeyValuePairs(likesArray);
+    
+    if(likeObject[userId] === '0' || likeObject[userId] === '1') {
+        removeScoreCache(`posts_liked:${currentUserId}`, userId);
+    }else {
+        addToListWithScore(`posts_liked:${currentUserId}`, -1, userId);
+    }
+
+    addToListWithScore(`suggest_post:${userId}`, -3, postId);
+    postEventEmitter.emit('updated-post', postId);
+})

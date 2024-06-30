@@ -1,16 +1,14 @@
 import type { TPostAssignments, TErrorHandler, TUserProfile, TPostWithRelations, TInferSelectPostLike, likesArray, TInferSelectPost, TInferSelectUserNoPass, TUserId } from '../types/types';
 import { scanTheCache, scanPostCache } from '../database/cache/post.cache';
-import { removeScoreCache, addToListWithScore, getListScore } from '../database/cache/index.cache'
-import { deleteLikePost, findFirstLike, findFirstPost, findManyPostByUserId, findSuggestedPosts, insertLikePost, 
-    insertPost } from '../database/queries/post.query';
+import { addToListWithScore, getAllFromHashCache } from '../database/cache/index.cache'
+import { findFirstLike, findFirstPost, findManyPostByUserId, findSuggestedPosts, insertPost, updatePost } from '../database/queries/post.query';
 import { findLimitedUsers } from '../database/queries/user.query';
-import { ResourceNotFoundError } from '../libs/utils';
+import { ForbiddenError, ResourceNotFoundError } from '../libs/utils';
 import ErrorHandler from '../libs/utils/errorHandler';
 import { v2 as cloudinary } from 'cloudinary';
 import shuffleArray from '../libs/utils/shuffleArray';
 import { postEventEmitter } from '../events/post.event';
 import { getMultipleFromHashCache } from '../database/cache/index.cache';
-import { insertNotification } from '../database/queries/notification.query';
 
 const combinePostCreator = (post : TInferSelectPost, user : TInferSelectUserNoPass, resultFor : 'return' | 'redis') => {
     const creator = Object.fromEntries(Object.entries(user).filter(([key, value]) => value !== null && key !== 'updatedAt'));
@@ -74,7 +72,7 @@ const assignTrendingPostsToUsers = async (tradingPosts : TPostAssignments, users
     return userPostAssignments;
 }
 
-export const getPostsService = async (currentUserId : string) : Promise<TPostWithRelations[]> => {
+export const suggestedPostsService = async (currentUserId : string) : Promise<TPostWithRelations[]> => {
     try {
         let suggestedPosts : TPostWithRelations[] = [];
 
@@ -111,30 +109,11 @@ export const postLikeService = async (currentUserId : string, postId : string) =
 
         const hasLiked : TInferSelectPostLike | undefined = await findFirstLike(currentUserId, postId);
         if(!hasLiked) {
-            await Promise.all([
-                await insertNotification(currentUserId, postDetails.userId, 'like'),
-                await insertLikePost(currentUserId, postId)
-            ]);
-
-            addToListWithScore(`posts_liked:${currentUserId}`, 1, postDetails.userId);
-            addToListWithScore(`suggest_post:${postDetails.userId}`, 3, postId);
-            postEventEmitter.emit('updated-post', postId);
-
+            postEventEmitter.emit('like-post', currentUserId, postDetails.userId, postId);
             return 'Post has been liked';
         }
 
-        await deleteLikePost(currentUserId, postId);
-        const likesArray : string[] = await getListScore(`posts_liked:${currentUserId}`);
-        const likeObject = arrayToKeyValuePairs(likesArray);
-        
-        if(likeObject[postDetails.userId] === '0' || likeObject[postDetails.userId] === '1') {
-            removeScoreCache(`posts_liked:${currentUserId}`, postDetails.userId);
-        }else {
-            addToListWithScore(`posts_liked:${currentUserId}`, -1, postDetails.userId);
-        }
-
-        addToListWithScore(`suggest_post:${postDetails.userId}`, -3, postId);
-        postEventEmitter.emit('updated-post', postId);
+        postEventEmitter.emit('dislike-post', currentUserId, postDetails.userId, postId);
         return 'Post has been disliked';
         
     } catch (err) {
@@ -191,4 +170,51 @@ const parsedPostsArray = (postsArray : Required<TPostWithRelations[]>) : unknown
         matchedPosts.push(fixedResult);
     }
     return matchedPosts;
+}
+
+export const editPostService = async (currentUserId : string, postId : string, image : string | null, text : string) => {
+    try {
+        let currentPost : TPostWithRelations;
+
+        currentPost = await getAllFromHashCache(`post:${postId}`);
+        if(Object.keys(currentPost).length == 0) currentPost = await findFirstPost(postId);
+        
+        if(currentPost.userId !== currentUserId) throw new ForbiddenError();
+        if(image) {
+            const imageName = currentPost.image!.split('/').pop()?.split('.')[0];
+            if (imageName) {
+                await cloudinary.uploader.destroy(imageName);
+            }
+            const uploadedResponse = await cloudinary.uploader.upload(image);
+			image = uploadedResponse.secure_url;
+        }
+
+        const updateValues = {image : image ? image : currentPost.image, text : text ? text : currentPost.text} as {
+            image : string, text : string
+        };
+        const updatedPost = await updatePost(postId, updateValues);
+        postEventEmitter.emit('updated-post', postId);
+        return updatedPost;
+        
+    } catch (err) {
+        const error = err as TErrorHandler;
+        throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
+    }
+}
+
+export const deletePostService = async (postId : string, currentUserId : string) => {
+    try {
+        let currentPost : TPostWithRelations;
+        currentPost = await getAllFromHashCache(`post:${postId}`);
+
+        if(Object.keys(currentPost).length == 0) currentPost = await findFirstPost(postId);
+        if(currentPost.userId !== currentUserId) throw new ForbiddenError();
+
+        postEventEmitter.emit('delete-post', currentPost.userId, postId);
+        return 'Post has been deleted';
+        
+    } catch (err) {
+        const error = err as TErrorHandler;
+        throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
+    }
 }

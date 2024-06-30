@@ -84,7 +84,7 @@ export const PostLikeTable = pgTable('post_likes', {
 });
 
 export const PostTagTable = pgTable('post_tags', {
-    postId : uuid('postId').references(() => PostTable.id),
+    postId : uuid('postId').references(() => PostTable.id, {onDelete : 'cascade'}),
     tag : varchar('tag', {length : 255}).notNull()
 }, table => {
     return {pk : primaryKey({columns : [table.postId]})}
@@ -105,8 +105,8 @@ export const NotificationTable = pgTable('notifications', {
 
 export const SavePostTable = pgTable('save_posts', {
     id : uuid('id').primaryKey().defaultRandom(),
-    postId : uuid('postId').references(() => PostTable.id),
-    userId : uuid('userId').references(() => UserTable.id)
+    postId : uuid('postId').references(() => PostTable.id, {onDelete : 'cascade'}),
+    userId : uuid('userId').references(() => UserTable.id, {onDelete : 'cascade'})
 }, table => {
     return {postIndex : index('postIndex_saveTable').on(table.postId), userIndex : index('userIndex_saveTable').on(table.userId)}
 });
