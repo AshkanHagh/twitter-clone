@@ -47,14 +47,14 @@ export const getMultipleFromHashCache = async <T>(baseKey : string, subKeys : st
     return results;
 }
 
-export const addToListWithScore = async (key : string, incrementAmount : (string | number), postId : string) => {
-    await redis.zincrby(key, incrementAmount, postId);
+export const addToListWithScore = async (listKey : string, incrementAmount : (string | number), listValue : string) => {
+    await redis.zincrby(listKey, incrementAmount, listValue);
 }
 
-export const removeScoreCache = async (key : string, postId : string) => {
-    await redis.zrem(key, postId);
+export const removeScoreCache = async (listKey : string, listIndex : string) => {
+    await redis.zrem(listKey, listIndex);
 }
 
-export const getListScore = async (key : string) => {
-    return await redis.zrevrange(key, 0, -1, 'WITHSCORES');
+export const getListScore = async (listKey : string) => {
+    return await redis.zrevrange(listKey, 0, -1, 'WITHSCORES');
 }

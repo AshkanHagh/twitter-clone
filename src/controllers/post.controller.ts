@@ -17,7 +17,7 @@ export const createPost = CatchAsyncError(async (req : Request, res : Response, 
 
 export const suggestedPosts = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
-        const posts : TPostWithRelations[] = await suggestedPostsService(req.user!.id);
+        const posts : TPostWithRelations[] = await suggestedPostsService(req.user!.id as string);
         res.status(200).json({success : true, posts});
         
     } catch (error) {

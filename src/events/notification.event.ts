@@ -4,15 +4,15 @@ import { addToListCache } from '../database/cache/index.cache';
 
 export const notificationEventEmitter = new EventEmitter();
 
-notificationEventEmitter.on('follow', async (from : string, to : string) => {
+notificationEventEmitter.on('follow', async (from : string, to : string) : Promise<void> => {
     const notification = await insertNotification(from, to, 'follow');
     await addToListCache(`notification:${to}`, notification, 604800);
 });
 
-notificationEventEmitter.on('clear', async (currentUserId : string) => {
+notificationEventEmitter.on('clear', async (currentUserId : string) : Promise<void> => {
     await deleteNotifications(currentUserId);
 });
 
-notificationEventEmitter.on('read', async (currentUserId : string) => {
+notificationEventEmitter.on('read', async (currentUserId : string) : Promise<void> => {
     await updateNotification(currentUserId);
 });

@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1719170441604,
-      "tag": "0000_cold_sinister_six",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1719208610301,
-      "tag": "0001_noisy_wong",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1719752491880,
-      "tag": "0002_third_centennial",
+      "when": 1719823758994,
+      "tag": "0000_rapid_onslaught",
       "breakpoints": true
     }
   ]

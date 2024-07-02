@@ -23,6 +23,12 @@ declare global {
       SMTP_PASSWORD: string;
       ORIGIN: string;
       SENTRY_KEY: string;
+      AUTH_GOOGLE_ID: string;
+      AUTH_GOOGLE_SECRET: string;
+      GOOGLE_CALLBACK_URL: string;
+      GITHUB_CLIENT_ID: string;
+      GITHUB_CLIENT_SECRET: string;
+      AUTH_SECRET: string;
     }
   }
 }

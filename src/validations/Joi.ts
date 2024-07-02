@@ -49,3 +49,8 @@ export const createPostBody = Joi.object({
     text : Joi.string().trim().max(255),
     image : Joi.string().trim()
 });
+
+export const updatePostBody = Joi.object({
+    text : Joi.string().trim().max(255),
+    image : Joi.string().trim()
+});

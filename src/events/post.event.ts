@@ -1,20 +1,23 @@
 import { EventEmitter } from 'node:events';
 import { deleteFirstPost, deleteLikePost, findFirstPost, findManyPosts, insertLikePost } from '../database/queries/post.query';
 import { addToHashCache, addToListWithScore, deleteFromCache, getListScore, removeScoreCache } from '../database/cache/index.cache';
-import type { TPostWithRelations } from '../types/types';
+import type { TInferSelectComment, TInferSelectUserNoPass, TPostWithRelations } from '../types/types';
 import { removeIndexFromMultipleListCache } from '../database/cache/post.cache';
 import { insertNotification } from '../database/queries/notification.query';
 import { arrayToKeyValuePairs } from '../services/post.service';
 
 export const postEventEmitter = new EventEmitter();
 
-postEventEmitter.on('create-post', async () => {
+postEventEmitter.on('create-post', async () : Promise<void> => {
     const posts : TPostWithRelations[] = await findManyPosts();
     for (const post of posts) {
         const { id, text, image, createdAt, updatedAt, comments, likes, tags, user, userId} = post;
+        const likesUserInfo : TInferSelectUserNoPass[] | undefined = likes?.map(user => user.user);
+        const commentsInfo : TInferSelectComment[] | undefined = comments?.map(comment => comment.comment);
+
         const fixedResult = {
             id, userId, text, image, createdAt, updatedAt,
-            comments : JSON.stringify(comments), likes : JSON.stringify(likes),
+            comments : JSON.stringify(commentsInfo), likes : JSON.stringify(likesUserInfo),
             tags, user : JSON.stringify(user)
         };
 
@@ -22,18 +25,21 @@ postEventEmitter.on('create-post', async () => {
     }
 });
 
-postEventEmitter.on('updated-post', async (postId : string) => {
+postEventEmitter.on('updated-post', async (postId : string) : Promise<void> => {
     const post : TPostWithRelations = await findFirstPost(postId);
     const { id, text, image, createdAt, updatedAt, comments, likes, tags, user, userId} = post;
-        const fixedResult = {
-            id, userId, text, image, createdAt, updatedAt,
-            comments : JSON.stringify(comments), likes : JSON.stringify(likes),
-            tags, user : JSON.stringify(user)
-        };
+    const likesUserInfo : TInferSelectUserNoPass[] | undefined = likes?.map(user => user.user);
+    const commentsInfo : TInferSelectComment[] | undefined = comments?.map(comment => comment.comment);
+
+    const fixedResult = {
+        id, userId, text, image, createdAt, updatedAt,
+        comments : JSON.stringify(commentsInfo), likes : JSON.stringify(likesUserInfo),
+        tags, user : JSON.stringify(user)
+    };
     addToHashCache(`post:${post.id}`, fixedResult, 2419200);
 });
 
-postEventEmitter.on('delete-post', async (userId : string, postId : string) => {
+postEventEmitter.on('delete-post', async (userId : string, postId : string) : Promise<void> => {
     await Promise.all([
         deleteFirstPost(postId), deleteFromCache(`post:${postId}`),
         removeScoreCache(`suggest_post:${userId}`, postId),
@@ -41,7 +47,7 @@ postEventEmitter.on('delete-post', async (userId : string, postId : string) => {
     ])
 })
 
-postEventEmitter.on('like-post', async (currentUserId : string, userId : string, postId : string) => {
+postEventEmitter.on('like-post', async (currentUserId : string, userId : string, postId : string) : Promise<void> => {
     await Promise.all([
         await insertNotification(currentUserId, userId, 'like'),
         await insertLikePost(currentUserId, postId)
@@ -52,7 +58,7 @@ postEventEmitter.on('like-post', async (currentUserId : string, userId : string,
     postEventEmitter.emit('updated-post', postId);
 })
 
-postEventEmitter.on('dislike-post', async (currentUserId : string, userId : string, postId : string) => {
+postEventEmitter.on('dislike-post', async (currentUserId : string, userId : string, postId : string) : Promise<void> => {
     await deleteLikePost(currentUserId, postId);
     const likesArray : string[] = await getListScore(`posts_liked:${currentUserId}`);
     const likeObject = arrayToKeyValuePairs(likesArray);

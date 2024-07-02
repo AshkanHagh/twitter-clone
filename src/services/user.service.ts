@@ -1,9 +1,8 @@
-import type { TErrorHandler, TInferSelectUserNoPass, TInferSelectUserProfile, TInferUpdateUser, TUpdateProfileInfo, 
-    TUserProfile, TUserWithProfileInfo } from '../types/types';
+import type { TErrorHandler, TFollowersRelations, TInferSelectUserNoPass, TInferSelectUserProfile, TInferUpdateUser, TUpdateProfileInfo, 
+    TUserProfile, TUserWithProfileInfo, TUserWithRelations } from '../types/types';
 import { removeFromHashListCache, getAllFromHashCache, getHashWithIndexCache, addHashListCache } from '../database/cache/index.cache';
 import { searchByUsernameInCache, searchInCache, updateUserCache } from '../database/cache/user.cache';
-import { deleteFollow, findFirstFollow, findFirstProfile, findFirstUser, findManyUsersById, insertFollow, insertProfileInfo, searchUserByUsername, 
-    updateAccount, updateProfileInfo } from '../database/queries/user.query';
+import { deleteFollow, findFirstFollow, findFirstProfile, findFirstUser, findManyFollowingsId, findManyFollowings, findManyUsers, findManyUsersById, insertFollow, insertProfileInfo, searchUserByUsername, updateAccount, updateProfileInfo } from '../database/queries/user.query';
 import emailEventEmitter from '../events/email.event';
 import { notificationEventEmitter } from '../events/notification.event';
 import { userEventEmitter } from '../events/user.event';
@@ -43,7 +42,7 @@ export const updateProfileInfoService = async (fullName : string, bio : string, 
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
-}
+};
 
 export const combineUserProfileWithUser = (profile : TInferSelectUserProfile | null, user : TInferSelectUserNoPass) => {
     const { id, username, email, role, createdAt, updatedAt } = user;
@@ -54,7 +53,7 @@ export const combineUserProfileWithUser = (profile : TInferSelectUserProfile | n
         return {id, username, email, role, createdAt, updatedAt, ...filteredProfile}
     }
     return {id, username, email, role, createdAt, updatedAt}
-}
+};
 
 export const searchUserService = async (username : string, currentUserId : string) => {
     try {
@@ -76,7 +75,7 @@ export const searchUserService = async (username : string, currentUserId : strin
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
-}
+};
 
 export const followUserService = async (currentUser : TInferSelectUserNoPass, userToFollowId : string) : Promise<string> => {
     try {
@@ -114,7 +113,7 @@ export const followUserService = async (currentUser : TInferSelectUserNoPass, us
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
-}
+};
 
 export const getUserProfileService = async (currentUser : TUserProfile) => {
     try {
@@ -128,7 +127,7 @@ export const getUserProfileService = async (currentUser : TUserProfile) => {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
-}
+};
 
 export const updateAccountInfoService = async (currentUser : TUserProfile, email : string, username : string) => {
     try {
@@ -149,7 +148,7 @@ export const updateAccountInfoService = async (currentUser : TUserProfile, email
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
-}
+};
 
 export const updateAccountPasswordService = async (currentUserId : string, newPassword : string, oldPassword : string) => {
     try {
@@ -170,41 +169,74 @@ export const updateAccountPasswordService = async (currentUserId : string, newPa
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
-}
+};
 
 export const suggestionForFollowService = async (currentUserId : string) => {
     try {
-        const suggestedUsers = await getTopLikedPostsCreators(currentUserId);
-        const followingsSuggestion = await getFollowings_Of_followings(currentUserId);
-        return [...suggestedUsers, ...followingsSuggestion];
+        let topFollowedUsers : TUserWithProfileInfo[];
+        const suggestMap : Map<string, TUserWithRelations | null> = new Map<string, TUserWithRelations | null>();
+
+        const suggestedUsers : TUserWithProfileInfo[] = await getTopLikedPostsCreators(currentUserId);
+        const followingsSuggestion : (TUserWithProfileInfo | null)[] = await getFollowings_Of_followings(currentUserId);
+
+        const topFollowedUsersCache : Record<string, string> = await getAllFromHashCache(`top_followers:${currentUserId}`);
+        topFollowedUsers = Object.entries(topFollowedUsersCache).map(value => JSON.parse(value[1]))
+
+        if (Object.keys(topFollowedUsersCache).length == 0) {
+            topFollowedUsers = await getTopFollowedUsers(currentUserId);
+        }
+
+        [...topFollowedUsers, ...suggestedUsers, ...followingsSuggestion].forEach(user => {
+            suggestMap.set(user!.id, user);
+        });
+
+        return Array.from(suggestMap.values());
         
     } catch (err) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
-}
+};
 
-const getTopLikedPostsCreators = async (currentUserId : string) => {
-    const likedPostUsersId = await getListScore(`posts_liked:${currentUserId}`);
-    const users = arrayToKeyValuePairs(likedPostUsersId);
+export const getTopLikedPostsCreators = async (currentUserId : string) => {
+    const currentUserFollowings = await findManyFollowingsId(currentUserId, 0);
+    const likedPostCreatorsId : string[] = await getListScore(`posts_liked:${currentUserId}`);
+    const creators : Record<string, string> = arrayToKeyValuePairs(likedPostCreatorsId);
 
-    const usersArray = Object.entries(users).map(([userId, likeCount]) => ({userId, likeCount : +likeCount}));
-    usersArray.sort((a, b) => b.likeCount - a.likeCount);
+    const creatorsArray : Array<{userId: string; likeCount: number;}> = Object.entries(creators).map(([userId, likeCount]) => 
+        ({userId, likeCount : +likeCount}));
     
-    const usersId = usersArray.map(user => user.userId);
-    const suggestedUsers = await findManyUsersById(usersId, 5);
+    const suggestedCreatorsId = creatorsArray.filter(creator => !currentUserFollowings.some(user => user.followedId === creator.userId));
+    creatorsArray.sort((a, b) => b.likeCount - a.likeCount);
+    const suggestedCreators : TUserWithProfileInfo[] = await findManyUsersById(suggestedCreatorsId.map(creator => creator.userId), 5);
 
+    return suggestedCreators;
+};
+
+export const getFollowings_Of_followings = async (currentUserId : string) => {
+    const currentUserFollowings : TFollowersRelations[] = await findManyFollowings(currentUserId, 0);
+    const modifiedFollowings : (TUserWithProfileInfo | null)[] = currentUserFollowings.flatMap(follow => 
+        follow.follower ? follow.follower.followings.map(following => following.follower) : []
+    ).filter(following => following !== null)
+    
+    const suggestedUsers : (TUserWithProfileInfo | null)[] = modifiedFollowings.filter(
+        user => !currentUserFollowings.some(following => following.follower?.id === user!.id)
+    ).splice(0, 5);
     return suggestedUsers;
-}
+};
 
-const getFollowings_Of_followings = async (currentUserId : string) => {
-    const currentUserFollowings : string[] = await getAllFromHashCache(`followings:${currentUserId}`);
-    const parsedFollowings : TUserProfile[] = Object.values(currentUserFollowings).map(value => JSON.parse(value));
+// 1. add suggestedUsers to cache name suggestion_follow:${userId}
+// 2. update All suggestion function to update cache
+// DONE optimize the suggestion functions with cache
+export const getTopFollowedUsers = async (currentUserId : string) => {
+    const users : TUserWithRelations[] = await findManyUsers(currentUserId, 0);
+    users.sort((a, b) => b.followers!.length - a.followers!.length);
 
-    const followingUsers = await Promise.all(parsedFollowings.map(user => ([user.id])).flat());
-    if(followingUsers.length !== 0) {
-        const users = await findManyUsersById(followingUsers, 5);
-        return users;
-    }
-    return [];
-}
+    const fixedResult : TUserWithProfileInfo[] = users.map(user => {
+        const { id, username, email, role, profile, createdAt, updatedAt } = user;
+        return {id, username, email, role, createdAt, updatedAt, profile} as TUserWithProfileInfo
+    }).splice(0, 5);
+
+    userEventEmitter.emit('addSuggestedUsersToCache', fixedResult, currentUserId);
+    return fixedResult;
+};

@@ -114,12 +114,14 @@ export const SavePostTable = pgTable('save_posts', {
 export const UserTableRelations = relations(UserTable, ({one, many}) => {
     return {
         profile : one(UserProfileTable),
-        followers : one(FollowersTable, {
-            fields : [UserTable.id], references : [FollowersTable.followerId], relationName : 'followers'
-        }),
-        followings : one(FollowersTable, {
-            fields : [UserTable.id], references : [FollowersTable.followedId], relationName : 'followed'
-        }),
+        followings : many(FollowersTable, {relationName : 'followings'}),
+        followers : many(FollowersTable, {relationName : 'followers'}),
+        // followings : one(FollowersTable, {
+        //     fields : [UserTable.id], references : [FollowersTable.followerId], relationName : 'followings'
+        // }),
+        // followers : one(FollowersTable, {
+        //     fields : [UserTable.id], references : [FollowersTable.followedId], relationName : 'followers'
+        // }),
         posts : many(PostTable),
         comments : many(CommentTable), replies : many(RepliesTable), likes : many(PostLikeTable),
         notificationFrom : one(NotificationTable, {
@@ -141,11 +143,11 @@ export const UserProfileTableRelations = relations(UserProfileTable, ({one}) => 
 
 export const FollowersTableRelations = relations(FollowersTable, ({one}) => {
     return {
-        follower : one(UserTable, {
-            fields : [FollowersTable.followerId], references : [UserTable.id], relationName : 'followerId'
-        }),
         followed : one(UserTable, {
-            fields : [FollowersTable.followedId], references : [UserTable.id], relationName : 'followedId'
+            fields : [FollowersTable.followerId], references : [UserTable.id], relationName : 'followings'
+        }),
+        follower : one(UserTable, {
+            fields : [FollowersTable.followedId], references : [UserTable.id], relationName : 'followers'
         }),
     }
 });

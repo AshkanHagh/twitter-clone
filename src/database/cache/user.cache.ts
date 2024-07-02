@@ -24,7 +24,7 @@ export const updateUserCache = async (user : TInferUpdateUser) : Promise<void> =
     const updatedUser : TInferSelectUserNoPass = await getAllFromHashCache(`user:${user.id}`);
 
     const updateCacheForPattern = async (pattern : string) : Promise<void> => {
-        let cursor = '0';
+        let cursor : string = '0';
         do {
             const [newCursor, keys] : [string, string[]] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
 

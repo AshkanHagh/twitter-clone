@@ -36,6 +36,11 @@ declare global {
     }
 }
 
+export type TProfile = {
+    fullName : TInferSelectUserProfile['fullName']; bio : TInferSelectUserProfile['bio']; profilePic : TInferSelectUserProfile['profilePic'];
+    gender : TInferSelectUserProfile['gender']; isBan : TInferSelectUserProfile['isBan'];
+} | null
+
 export type TVerifyActivationToken = {
     user : TInferSelectUser; activationCode : string;
 }
@@ -47,10 +52,7 @@ export type TUpdateProfileInfo = {
 export type TUserWithProfileInfo = {
     id : TInferSelectUser['id']; username : TInferSelectUser['username']; email : TInferSelectUser['email']; role : TInferSelectUser['role']; 
     password? : TInferSelectUser['password']; createdAt : TInferSelectUser['createdAt']; updatedAt : TInferSelectUser['updatedAt'];
-    profile : {
-        fullName : TInferSelectUserProfile['fullName']; bio : TInferSelectUserProfile['bio']; profilePic : TInferSelectUserProfile['profilePic'];
-        gender : TInferSelectUserProfile['gender']; isBan : TInferSelectUserProfile['isBan'];
-    } | null
+    profile : TProfile
 }
 export type TUserProfile = {
     id : TInferSelectUser['id']; username : TInferSelectUser['username']; email : TInferSelectUser['email']; role : TInferSelectUser['role']; 
@@ -97,10 +99,31 @@ export type TPostWithRelations = {
     tags? : { tag : TInferSelectTag['tag'] }
 }
 
-export type likesArray = {
+export type TLikesArray = {
     userId : string; likedCount : number;
 }
 
 export type TUserId = {
     id : string;
+}
+
+export type TUserWithRelations = {
+    id : TInferSelectUser['id']; username : TInferSelectUser['username']; email : TInferSelectUser['email']; role : TInferSelectUser['role']; 
+    password? : TInferSelectUser['password']; createdAt : TInferSelectUser['createdAt']; updatedAt : TInferSelectUser['updatedAt'];
+    followers? : TInferSelectFollowers[],
+    profile? : TProfile
+}
+
+export type TFollowersRelations = {
+    followerId? : string | null; followedId? : string | null
+    follower : {
+        id? : TInferSelectUser['id']; username? : TInferSelectUser['username']; email? : TInferSelectUser['email']; role? : TInferSelectUser['role']; createdAt? : TInferSelectUser['createdAt']; updatedAt? : TInferSelectUser['updatedAt'];
+        followings : {
+            follower : {
+                id : TInferSelectUser['id']; username : TInferSelectUser['username']; email: TInferSelectUser['email']; 
+                role: TInferSelectUser['role']; createdAt: TInferSelectUser['createdAt']; updatedAt : TInferSelectUser['updatedAt'];
+                profile : TProfile
+            } | null
+        }[];
+    } | null;
 }

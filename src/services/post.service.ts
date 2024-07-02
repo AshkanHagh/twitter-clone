@@ -1,11 +1,11 @@
-import type { TPostAssignments, TErrorHandler, TUserProfile, TPostWithRelations, TInferSelectPostLike, likesArray, TInferSelectPost, TInferSelectUserNoPass, TUserId } from '../types/types';
+import type { TPostAssignments, TErrorHandler, TUserProfile, TPostWithRelations, TInferSelectPostLike, TLikesArray, TInferSelectPost, TInferSelectUserNoPass, TUserId } from '../types/types';
 import { scanTheCache, scanPostCache } from '../database/cache/post.cache';
 import { addToListWithScore, getAllFromHashCache } from '../database/cache/index.cache'
 import { findFirstLike, findFirstPost, findManyPostByUserId, findSuggestedPosts, insertPost, updatePost } from '../database/queries/post.query';
 import { findLimitedUsers } from '../database/queries/user.query';
 import { ForbiddenError, ResourceNotFoundError } from '../libs/utils';
 import ErrorHandler from '../libs/utils/errorHandler';
-import { v2 as cloudinary } from 'cloudinary';
+import { v2 as cloudinary, type UploadApiResponse } from 'cloudinary';
 import shuffleArray from '../libs/utils/shuffleArray';
 import { postEventEmitter } from '../events/post.event';
 import { getMultipleFromHashCache } from '../database/cache/index.cache';
@@ -21,7 +21,7 @@ const combinePostCreator = (post : TInferSelectPost, user : TInferSelectUserNoPa
 export const createPostService = async (currentUser : TInferSelectUserNoPass, text : string, image : string | undefined) => {
     try {
         if(image) {
-            const uploadedResponse = await cloudinary.uploader.upload(image);
+            const uploadedResponse : UploadApiResponse = await cloudinary.uploader.upload(image);
             image = uploadedResponse.secure_url;
         }
         const createdPost : TInferSelectPost = await insertPost(currentUser.id, text, image);
@@ -38,7 +38,7 @@ export const createPostService = async (currentUser : TInferSelectUserNoPass, te
 
 const fetchAndConvertCacheToObject = async (key : string) : Promise<Record<string, string>> => {
     const keysArray : string[] = await scanTheCache(key);
-    const keyValuePairs = arrayToKeyValuePairs(keysArray);
+    const keyValuePairs : Record<string, string> = arrayToKeyValuePairs(keysArray);
     return keyValuePairs;
 }
 
@@ -62,7 +62,7 @@ const assignTrendingPostsToUsers = async (tradingPosts : TPostAssignments, users
         const shuffledUsers : TUserId[] = shuffleArray([...users]);
         const selectedUsers : Set<TUserId> = new Set<TUserProfile>();
 
-        let i = 0;
+        let i : number = 0;
         while (selectedUsers.size < userCount) {
             selectedUsers.add(shuffledUsers[i % totalUsers]);
             i++;
@@ -125,20 +125,20 @@ export const postLikeService = async (currentUserId : string, postId : string) =
 const assignLikedPostsToUser = async (usersId : TPostAssignments) : Promise<TPostWithRelations[]> => {
     const matchedPosts : TPostWithRelations[] = [];
 
-    const usersArray : likesArray[] = Object.entries(usersId).map(([userId, likedCount]) => ({userId, likedCount : +likedCount}));
+    const usersArray : TLikesArray[] = Object.entries(usersId).map(([userId, likedCount]) => ({userId, likedCount : +likedCount}));
     usersArray.sort((a, b) => b.likedCount - a.likedCount);
 
     for (const { userId } of usersArray) {
-        const cachedPosts = await scanPostCache(userId);
+        const cachedPosts : TPostWithRelations[] = await scanPostCache(userId);
         
-        const postPromise = cachedPosts.map(async post => {
+        const postPromise : Promise<TPostWithRelations[]>[] = cachedPosts.map(async post => {
             if (post.userId === userId) {
                 return parsedPostsArray(cachedPosts) as TPostWithRelations[];
             } else {
-                return await findManyPostByUserId(userId);
+                return await findManyPostByUserId(userId) as TPostWithRelations[];
             }
         });
-        const postsArrays = await Promise.all(postPromise);
+        const postsArrays : TPostWithRelations[][] = await Promise.all(postPromise);
         postsArrays.forEach(posts => matchedPosts.push(...posts.splice(0, 150)));
     }
 
@@ -153,24 +153,27 @@ Promise<TPostWithRelations[]> => {
         postMap.set(post.id, post);
     });
 
-    const mergedPostsArray = Array.from(postMap.values());
+    const mergedPostsArray : TPostWithRelations[] = Array.from(postMap.values());
     return mergedPostsArray 
 }
 
-const parsedPostsArray = (postsArray : Required<TPostWithRelations[]>) : unknown => {
-    const matchedPosts = [];
+const parsedPostsArray = (postsArray: TPostWithRelations[]): TPostWithRelations[] => {
+    const matchedPosts: TPostWithRelations[] = [];
 
     for (const post of postsArray) {
         const { id, text, image, userId, createdAt, updatedAt, user, comments, likes, tags } = post;
-        const fixedResult = {
-            id, text, image, userId, createdAt, updatedAt, user : JSON.parse(user as unknown as string), 
-            comments : comments ? JSON.parse(comments as unknown as string) : [], 
-            likes : likes ? Object.keys(JSON.parse(likes as unknown as string)).length : [], tags
-        }
+
+        const fixedResult: TPostWithRelations = {
+            id, text, image, userId, createdAt, updatedAt, 
+            user: typeof user === 'string' ? JSON.parse(user) : user, 
+            comments: comments ? (typeof comments === 'string' ? JSON.parse(comments) : comments) : [], 
+            likes: likes ? (typeof likes === 'string' ? JSON.parse(likes) : likes.length) : [], 
+            tags
+        };
         matchedPosts.push(fixedResult);
     }
     return matchedPosts;
-}
+};
 
 export const editPostService = async (currentUserId : string, postId : string, image : string | null, text : string) => {
     try {
@@ -181,18 +184,19 @@ export const editPostService = async (currentUserId : string, postId : string, i
         
         if(currentPost.userId !== currentUserId) throw new ForbiddenError();
         if(image) {
-            const imageName = currentPost.image!.split('/').pop()?.split('.')[0];
+            const imageName : string | undefined = currentPost.image!.split('/').pop()?.split('.')[0];
             if (imageName) {
                 await cloudinary.uploader.destroy(imageName);
             }
-            const uploadedResponse = await cloudinary.uploader.upload(image);
+            const uploadedResponse : UploadApiResponse = await cloudinary.uploader.upload(image);
 			image = uploadedResponse.secure_url;
         }
 
-        const updateValues = {image : image ? image : currentPost.image, text : text ? text : currentPost.text} as {
-            image : string, text : string
-        };
-        const updatedPost = await updatePost(postId, updateValues);
+        const updateValues : {image : string, text : string} = {
+            image : image ? image : currentPost.image, text : text ? text : currentPost.text
+        } as {image : string, text : string};
+
+        const updatedPost : TInferSelectPost = await updatePost(postId, updateValues);
         postEventEmitter.emit('updated-post', postId);
         return updatedPost;
         
