@@ -11,7 +11,7 @@
     "db:studio": "bunx drizzle-kit studio",
     "db:seed": "bun src/database/seed.ts",
     "eslint": "bunx eslint .",
-    "vercel-build" : "echo hello vercel"
+    "vercel-build": "echo hello vercel"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
@@ -38,6 +38,7 @@
     "cors": "^2.8.5",
     "drizzle-orm": "^0.31.2",
     "express": "^4.19.2",
+    "express-rate-limit": "^7.3.1",
     "helmet": "^7.1.0",
     "ioredis": "^5.4.1",
     "joi": "^17.13.1",

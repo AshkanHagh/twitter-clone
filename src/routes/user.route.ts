@@ -7,22 +7,22 @@ import { clearNotifications, getNotifications } from '../controllers/notificatio
 
 const router = Router();
 
-router.put('/profile', [isAuthenticated, validationMiddleware(insertProfileBody)], updateProfileInfo);
+router.put('/me', [isAuthenticated, validationMiddleware(insertProfileBody)], updateProfileInfo);
 
-router.get('/search/:query', isAuthenticated, searchUser);
+router.get('/profile/:username', isAuthenticated, searchUser);
 
 router.put('/follow/:id', isAuthenticated, followUser);
 
-router.get('/profile', isAuthenticated, getUserProfile);
+router.put('/profile', isAuthenticated, getUserProfile);
 
-router.put('/info', [isAuthenticated, validationMiddleware(insertAccountBody)], updateAccountInfo);
+router.patch('/account', [isAuthenticated, validationMiddleware(insertAccountBody)], updateAccountInfo);
 
-router.put('/password', [isAuthenticated, validationMiddleware(insertPasswordBody)], updateAccountPassword);
+router.patch('/account/password', [isAuthenticated, validationMiddleware(insertPasswordBody)], updateAccountPassword);
 
 router.get('/notifications', isAuthenticated, getNotifications);
 
 router.delete('/notifications', isAuthenticated, clearNotifications);
 
-router.get('/suggestions', isAuthenticated, suggestionForFollow);
+router.get('/follow/suggestions', isAuthenticated, suggestionForFollow);
 
 export default router;

@@ -19,9 +19,9 @@ export const updateProfileInfo = CatchAsyncError(async (req : Request, res : Res
 
 export const searchUser = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
-        const { query : usernameSearchQuery } = req.params as {query : string};
+        const { username } = req.params as {username : string};
 
-        const foundUsers : TUserProfile[] = await searchUserService(usernameSearchQuery, req.user!.id);
+        const foundUsers : TUserProfile[] = await searchUserService(username, req.user!.id);
         res.status(200).json({success : true, foundUsers});
         
     } catch (error) {

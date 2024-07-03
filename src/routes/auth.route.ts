@@ -4,14 +4,15 @@ import { LoginBody, RegisterBody, VerifyAccountBody } from '../validations/Joi';
 import { login, logout, refreshToken, register, verifyAccount } from '../controllers/auth.controller';
 import { RouteNowFoundError } from '../libs/utils';
 import { isAuthenticated } from '../middlewares/auth';
+import { loginRateLimit, requestVerificationCodeRateLimit } from '../middlewares/rate-limit';
 
 const router = Router();
 
 router.post('/register', validationMiddleware(RegisterBody), register);
 
-router.post('/verify', validationMiddleware(VerifyAccountBody), verifyAccount);
+router.post('/verify', [requestVerificationCodeRateLimit, validationMiddleware(VerifyAccountBody)], verifyAccount);
 
-router.post('/login', validationMiddleware(LoginBody), login);
+router.post('/login', [loginRateLimit, validationMiddleware(LoginBody)], login);
 
 router.get('/logout', isAuthenticated, logout);
 

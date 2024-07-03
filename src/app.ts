@@ -10,7 +10,7 @@ import postRouter from './routes/post.route';
 import { RouteNowFoundError } from './libs/utils';
 import { ErrorMiddleware } from './middlewares/error';
 
-export const app = express();
+const app = express();
 
 app.use(express.json({limit : '10mb'}));
 app.use(express.urlencoded({extended : true}));
@@ -29,3 +29,4 @@ app.all('*', (req : Request, res : Response, next : NextFunction) => {
 });
 
 app.use(ErrorMiddleware);
+export { app };
