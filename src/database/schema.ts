@@ -17,7 +17,7 @@ export const UserTable = pgTable('users', {
 export const UserGender = pgEnum('gender', ['male', 'female']);
 export const UserProfileTable = pgTable('profiles', {
     id : uuid('id').primaryKey().defaultRandom(),
-    userId : uuid('userId').references(() => UserTable.id, {onDelete : 'cascade'}),
+    userId : uuid('userId').references(() => UserTable.id, {onDelete : 'cascade'}).notNull(),
     fullName : varchar('fullName', {length : 255}), 
     bio : varchar('bio', {length : 255}),
     profilePic : text('profilePic'), 
@@ -28,15 +28,15 @@ export const UserProfileTable = pgTable('profiles', {
 });
 
 export const FollowersTable = pgTable('followers', {
-    followerId : uuid('followerId').references(() => UserTable.id, {onDelete : 'cascade'}),
-    followedId : uuid('followedId').references(() => UserTable.id, {onDelete : 'cascade'})
+    followerId : uuid('followerId').references(() => UserTable.id, {onDelete : 'cascade'}).notNull(),
+    followedId : uuid('followedId').references(() => UserTable.id, {onDelete : 'cascade'}).notNull()
 }, table => {
     return {pk : primaryKey({columns : [table.followerId, table.followedId]})}
 });
 
 export const PostTable = pgTable('posts', {
     id : uuid('id').primaryKey().defaultRandom(),
-    userId : uuid('userId').references(() => UserTable.id, {onDelete : 'cascade'}),
+    userId : uuid('userId').references(() => UserTable.id, {onDelete : 'cascade'}).notNull(),
     text : text('text').notNull(),
     image : text('image'),
     createdAt : timestamp('createdAt').defaultNow(),
@@ -47,7 +47,7 @@ export const PostTable = pgTable('posts', {
 
 export const CommentTable = pgTable('comments', {
     id : uuid('id').primaryKey().defaultRandom(),
-    authorId : uuid('authorId').references(() => UserTable.id, {onDelete : 'cascade'}),
+    authorId : uuid('authorId').references(() => UserTable.id, {onDelete : 'cascade'}).notNull(),
     text : text('text').notNull(),
     createdAt : timestamp('createdAt').defaultNow(),
     updatedAt : timestamp('updatedAt').defaultNow().$onUpdate(() => new Date()),
@@ -57,8 +57,8 @@ export const CommentTable = pgTable('comments', {
 
 export const RepliesTable = pgTable('replies', {
     id : uuid('id').primaryKey().defaultRandom(),
-    commentId : uuid('commentId').references(() => CommentTable.id, {onDelete : 'cascade'}),
-    authorId : uuid('authorId').references(() => UserTable.id, {onDelete : 'cascade'}),
+    commentId : uuid('commentId').references(() => CommentTable.id, {onDelete : 'cascade'}).notNull(),
+    authorId : uuid('authorId').references(() => UserTable.id, {onDelete : 'cascade'}).notNull(),
     text : text('text').notNull(),
     createdAt : timestamp('createdAt').defaultNow(),
     updatedAt : timestamp('updatedAt').defaultNow().$onUpdate(() => new Date()),
@@ -70,21 +70,21 @@ export const RepliesTable = pgTable('replies', {
 });
 
 export const PostCommentTable = pgTable('post_comments', {
-    commentId : uuid('commentId').references(() => CommentTable.id, {onDelete : 'cascade'}),
-    postId : uuid('postId').references(() => PostTable.id, {onDelete : 'cascade'})
+    commentId : uuid('commentId').references(() => CommentTable.id, {onDelete : 'cascade'}).notNull(),
+    postId : uuid('postId').references(() => PostTable.id, {onDelete : 'cascade'}).notNull()
 }, table => {
     return {pk : primaryKey({columns : [table.postId, table.commentId]})}
 });
 
 export const PostLikeTable = pgTable('post_likes', {
-    userId : uuid('userId').references(() => UserTable.id, {onDelete : 'cascade'}),
-    postId : uuid('postId').references(() => PostTable.id, {onDelete : 'cascade'})
+    userId : uuid('userId').references(() => UserTable.id, {onDelete : 'cascade'}).notNull(),
+    postId : uuid('postId').references(() => PostTable.id, {onDelete : 'cascade'}).notNull()
 }, table => {
     return {pk : primaryKey({columns : [table.postId, table.userId]})}
 });
 
 export const PostTagTable = pgTable('post_tags', {
-    postId : uuid('postId').references(() => PostTable.id, {onDelete : 'cascade'}),
+    postId : uuid('postId').references(() => PostTable.id, {onDelete : 'cascade'}).notNull(),
     tag : varchar('tag', {length : 255}).notNull()
 }, table => {
     return {pk : primaryKey({columns : [table.postId]})}
@@ -93,8 +93,8 @@ export const PostTagTable = pgTable('post_tags', {
 export const NotificationType = pgEnum('type', ['like', 'follow']);
 export const NotificationTable = pgTable('notifications', {
     id : uuid('id').primaryKey().defaultRandom(),
-    from : uuid('from').references(() => UserTable.id, {onDelete : 'cascade'}),
-    to : uuid('to').references(() => UserTable.id, {onDelete : 'cascade'}),
+    from : uuid('from').references(() => UserTable.id, {onDelete : 'cascade'}).notNull(),
+    to : uuid('to').references(() => UserTable.id, {onDelete : 'cascade'}).notNull(),
     type : NotificationType('type'),
     read : boolean('read').default(false),
     createdAt : timestamp('createdAt').defaultNow(),
@@ -105,8 +105,8 @@ export const NotificationTable = pgTable('notifications', {
 
 export const SavePostTable = pgTable('save_posts', {
     id : uuid('id').primaryKey().defaultRandom(),
-    postId : uuid('postId').references(() => PostTable.id, {onDelete : 'cascade'}),
-    userId : uuid('userId').references(() => UserTable.id, {onDelete : 'cascade'})
+    postId : uuid('postId').references(() => PostTable.id, {onDelete : 'cascade'}).notNull(),
+    userId : uuid('userId').references(() => UserTable.id, {onDelete : 'cascade'}).notNull()
 }, table => {
     return {postIndex : index('postIndex_saveTable').on(table.postId), userIndex : index('userIndex_saveTable').on(table.userId)}
 });

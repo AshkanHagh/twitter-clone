@@ -11,7 +11,7 @@ export type TInferSelectUserProfile = InferSelectModel<typeof UserProfileTable>
 export type TInferSelectFollowers = InferSelectModel<typeof FollowersTable>
 
 export type TInferSelectPost = InferSelectModel<typeof PostTable>
-export type TInferSelectComment = InferSelectModel<typeof CommentTable>
+export type TSelectComment = typeof CommentTable.$inferSelect;
 export type TInferSelectReplies = InferSelectModel<typeof RepliesTable>
 
 export type TInferSelectPostComment = InferSelectModel<typeof PostCommentTable>
@@ -86,8 +86,8 @@ export type TPostWithRelations = {
     },
     comments? : {
         comment : { 
-            id : TInferSelectComment['id']; createdAt : TInferSelectComment['createdAt']; updatedAt : TInferSelectComment['updatedAt'];
-            text : TInferSelectComment['text']; authorId : TInferSelectComment['authorId'];
+            id : TSelectComment['id']; createdAt : TSelectComment['createdAt']; updatedAt : TSelectComment['updatedAt'];
+            text : TSelectComment['text']; authorId : TSelectComment['authorId'];
         }; 
     }[];
     likes? : { 
@@ -126,4 +126,27 @@ export type TFollowersRelations = {
             } | null
         }[];
     } | null;
+}
+
+export type TPostCommentWithAuthor = {
+    comment : {
+        id : string; createdAt : Date | null; updatedAt : Date | null; text : string; authorId : string;
+        author : {
+            username : string; 
+            profile : {
+                profilePic : string | null; 
+            } | null; 
+        }; 
+    }; 
+}
+
+export type TFixedPostComment = {
+    id: string;
+    authorId: string;
+    text: string;
+    createdAt: Date | null;
+    author: {
+        username: string;
+        profilePic: string | null | undefined;
+    };
 }

@@ -79,3 +79,7 @@ export const updatePost = async (postId : string, values : {text : string, image
 export const deleteFirstPost = async (postId : string) : Promise<void> => {
     await db.delete(PostTable).where(eq(PostTable.id, postId));
 }
+
+export const getPostCreatorAndId = async (postId : string) : Promise<{userId : string, id : string} | undefined> => {
+    return await db.query.PostTable.findFirst({where : (table, funcs) => funcs.eq(table.id, postId), columns : {userId : true, id : true}});
+}

@@ -1,19 +1,34 @@
 import { EventEmitter } from 'node:events';
 import { deleteFirstPost, deleteLikePost, findFirstPost, findManyPosts, insertLikePost } from '../database/queries/post.query';
 import { addToHashCache, addToListWithScore, deleteFromCache, getListScore, removeScoreCache } from '../database/cache/index.cache';
-import type { TInferSelectComment, TInferSelectUserNoPass, TPostWithRelations } from '../types/types';
+import type { TSelectComment, TInferSelectUserNoPass, TPostWithRelations } from '../types/types';
 import { removeIndexFromMultipleListCache } from '../database/cache/post.cache';
 import { insertNotification } from '../database/queries/notification.query';
 import { arrayToKeyValuePairs } from '../services/post.service';
 
 export const postEventEmitter = new EventEmitter();
 
-postEventEmitter.on('create-post', async () : Promise<void> => {
+postEventEmitter.on('create-post', async (postId : string) : Promise<void> => {
+    const post : TPostWithRelations = await findFirstPost(postId);
+    const { id, text, image, createdAt, updatedAt, comments, likes, tags, user, userId} = post;
+    const likesUserInfo : TInferSelectUserNoPass[] | undefined = likes?.map(user => user.user);
+    const commentsInfo : TSelectComment[] | undefined = comments?.map(comment => comment.comment);
+
+    const fixedResult = {
+        id, userId, text, image, createdAt, updatedAt,
+        comments : JSON.stringify(commentsInfo), likes : JSON.stringify(likesUserInfo),
+        tags, user : JSON.stringify(user)
+    };
+
+    addToHashCache(`post:${post.id}`, fixedResult, 2419200);
+});
+
+postEventEmitter.on('update-post-cache', async () : Promise<void> => {
     const posts : TPostWithRelations[] = await findManyPosts();
     for (const post of posts) {
         const { id, text, image, createdAt, updatedAt, comments, likes, tags, user, userId} = post;
         const likesUserInfo : TInferSelectUserNoPass[] | undefined = likes?.map(user => user.user);
-        const commentsInfo : TInferSelectComment[] | undefined = comments?.map(comment => comment.comment);
+        const commentsInfo : TSelectComment[] | undefined = comments?.map(comment => comment.comment);
 
         const fixedResult = {
             id, userId, text, image, createdAt, updatedAt,
@@ -29,7 +44,7 @@ postEventEmitter.on('updated-post', async (postId : string) : Promise<void> => {
     const post : TPostWithRelations = await findFirstPost(postId);
     const { id, text, image, createdAt, updatedAt, comments, likes, tags, user, userId} = post;
     const likesUserInfo : TInferSelectUserNoPass[] | undefined = likes?.map(user => user.user);
-    const commentsInfo : TInferSelectComment[] | undefined = comments?.map(comment => comment.comment);
+    const commentsInfo : TSelectComment[] | undefined = comments?.map(comment => comment.comment);
 
     const fixedResult = {
         id, userId, text, image, createdAt, updatedAt,

@@ -8,6 +8,13 @@
       "when": 1719823758994,
       "tag": "0000_rapid_onslaught",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1720000040675,
+      "tag": "0001_same_dragon_man",
+      "breakpoints": true
     }
   ]
 }

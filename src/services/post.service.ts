@@ -27,7 +27,7 @@ export const createPostService = async (currentUser : TInferSelectUserNoPass, te
         const createdPost : TInferSelectPost = await insertPost(currentUser.id, text, image);
 
         addToListWithScore(`suggest_post:${currentUser.id}`, 10, createdPost.id);
-        postEventEmitter.emit('create-post');
+        postEventEmitter.emit('create-post', createdPost.id);
         return combinePostCreator(createdPost, currentUser, 'return');
         
     } catch (err) {
