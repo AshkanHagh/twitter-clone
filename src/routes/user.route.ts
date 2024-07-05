@@ -13,7 +13,7 @@ router.get('/profile/:username', isAuthenticated, searchUser);
 
 router.put('/follow/:id', isAuthenticated, followUser);
 
-router.put('/profile', isAuthenticated, getUserProfile);
+router.get('/me', isAuthenticated, getUserProfile);
 
 router.patch('/account', [isAuthenticated, validationMiddleware(insertAccountBody)], updateAccountInfo);
 

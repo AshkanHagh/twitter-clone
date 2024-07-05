@@ -8,7 +8,7 @@ import { getAllFromHashCache } from '../database/cache/index.cache';
 
 export const isAuthenticated = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
-        const accessToken : string = req.cookies.access_token;
+        const accessToken : string = req.cookies['access_token'];
         if(!accessToken) return next(new LoginRequiredError());
 
         const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN as string) as JwtPayload & TInferSelectUser;

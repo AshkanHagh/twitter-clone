@@ -112,6 +112,7 @@ export const updateAccount = async (values : TInferUpdateUser) : Promise<TInferU
 }
 
 export const findManyUsersById = async (usersId : string[], limit : number | undefined) : Promise<TUserWithProfileInfo[]> => {
+    if(usersId.length == 0) return []
     return await db.query.UserTable.findMany({
         where : (table, funcs) => funcs.inArray(table.id, usersId),
         with : {profile : {columns : {userId : false, id : false}}}, limit, columns : {password : false}
@@ -119,6 +120,11 @@ export const findManyUsersById = async (usersId : string[], limit : number | und
 }
 
 export const countedUsersRows = async () : Promise<number> => {
+    const result = await db.select({ count: sql`count(*)`.mapWith(Number) }).from(UserTable);
+    return result[0].count;
+};
+
+export const countUserTable = async () : Promise<number> => {
     const result = await db.select({ count: sql`count(*)`.mapWith(Number) }).from(UserTable);
     return result[0].count;
 };

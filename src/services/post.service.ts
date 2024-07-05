@@ -1,8 +1,9 @@
 import type { TPostAssignments, TErrorHandler, TUserProfile, TPostWithRelations, TInferSelectPostLike, TLikesArray, TInferSelectPost, TInferSelectUserNoPass, TUserId } from '../types/types';
 import { scanTheCache, scanPostCache } from '../database/cache/post.cache';
-import { addToListWithScore, getAllFromHashCache } from '../database/cache/index.cache'
-import { findFirstLike, findFirstPost, findManyPostByUserId, findSuggestedPosts, insertPost, updatePost } from '../database/queries/post.query';
-import { findLimitedUsers } from '../database/queries/user.query';
+import { getAllFromHashCache, getListScore } from '../database/cache/index.cache'
+import { findFirstLike, findFirstPostWithPostId, findFirstPostWithUserId, findManyPostByUserId, findSuggestedPosts, insertPost, 
+    updatePost } from '../database/queries/post.query';
+import { countUserTable, findLimitedUsers } from '../database/queries/user.query';
 import { ForbiddenError, ResourceNotFoundError } from '../libs/utils';
 import ErrorHandler from '../libs/utils/errorHandler';
 import { v2 as cloudinary, type UploadApiResponse } from 'cloudinary';
@@ -18,6 +19,24 @@ const combinePostCreator = (post : TInferSelectPost, user : TInferSelectUserNoPa
     return {id, text, image, userId : {...creator}, createdAt, updatedAt}
 }
 
+export const calculateNumberOfSuggestions = async (creatorId : (string | undefined), postId : (string | undefined), 
+    returnType : 'cerate' | 'other') : Promise<number> => {
+    const totalUsers = await countUserTable();
+    const percentage = 0.01;
+    const numberOfSuggestions = Math.ceil(totalUsers * percentage);
+
+    if(returnType == 'other') {
+        const score = await getListScore(`suggest_post:${creatorId}`);
+        const suggestionNumber : Array<{postId : string, suggestCount : number}> = 
+        Object.entries(arrayToKeyValuePairs(score)).map(([postId, suggestCount]) => ({postId, suggestCount : +suggestCount}));
+
+        const suggestionPost = suggestionNumber.filter(post => post.postId == postId);
+        const suggestionCount = totalUsers <= suggestionPost[0].suggestCount ? 0 : numberOfSuggestions;
+        return suggestionCount;
+    }
+    return numberOfSuggestions;
+}
+
 export const createPostService = async (currentUser : TInferSelectUserNoPass, text : string, image : string | undefined) => {
     try {
         if(image) {
@@ -25,9 +44,9 @@ export const createPostService = async (currentUser : TInferSelectUserNoPass, te
             image = uploadedResponse.secure_url;
         }
         const createdPost : TInferSelectPost = await insertPost(currentUser.id, text, image);
-
-        addToListWithScore(`suggest_post:${currentUser.id}`, 10, createdPost.id);
-        postEventEmitter.emit('create-post', createdPost.id);
+        
+        postEventEmitter.emit('create-post', currentUser.id, createdPost.id);
+        postEventEmitter.emit('post_cache', createdPost.id);
         return combinePostCreator(createdPost, currentUser, 'return');
         
     } catch (err) {
@@ -71,7 +90,8 @@ const assignTrendingPostsToUsers = async (tradingPosts : TPostAssignments, users
     }
     return userPostAssignments;
 }
-
+// 1. Show currentUser latest post always
+// 1. Each user always must have 60 post from random trending posts
 export const suggestedPostsService = async (currentUserId : string) : Promise<TPostWithRelations[]> => {
     try {
         let suggestedPosts : TPostWithRelations[] = [];
@@ -79,6 +99,7 @@ export const suggestedPostsService = async (currentUserId : string) : Promise<TP
         const likedPostsUsers : Record<string, string> = await fetchAndConvertCacheToObject('posts_liked:*');
         const likedPosts : TPostWithRelations[] = await assignLikedPostsToUser(likedPostsUsers);
 
+        const currentUserPost : TPostWithRelations | undefined = await getCurrentUserLatestPost(currentUserId);
         const trendingPosts : Record<string, string> = await fetchAndConvertCacheToObject('suggest_post:*');
         // const userLimitCount = Object.entries(trendingPosts).map(([postId, quantity]) => +quantity).sort((a, b) => b - a).splice(0, 1);
         const users = await findLimitedUsers();
@@ -87,24 +108,26 @@ export const suggestedPostsService = async (currentUserId : string) : Promise<TP
         const postsForCurrentUser : string[] = Object.keys(trendingPostAssignments).filter(postId => 
             trendingPostAssignments[postId].includes(currentUserId)
         ).splice(0, 150);
+
         if(postsForCurrentUser.length !== 0) {
             const suggestedPostsCache : TPostWithRelations[] = await getMultipleFromHashCache('post', postsForCurrentUser);
             suggestedPosts = parsedPostsArray(suggestedPostsCache) as TPostWithRelations[];
             if(suggestedPostsCache.length == 0) suggestedPosts = await findSuggestedPosts(postsForCurrentUser);
         }
 
-        const combinedPosts : TPostWithRelations[] = await mergeLikedAndTrendingPosts(likedPosts, suggestedPosts);
+        const combinedPosts : TPostWithRelations[] = await mergeLikedAndTrendingPosts(likedPosts, suggestedPosts, currentUserPost);
         return combinedPosts;
         
     } catch (err) {
         const error = err as TErrorHandler;
+        console.log(error);
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 }
 
 export const postLikeService = async (currentUserId : string, postId : string) => {
     try {
-        const postDetails : TPostWithRelations = await findFirstPost(postId);
+        const postDetails : TPostWithRelations = await findFirstPostWithPostId(postId);
         if(!postDetails) throw new ResourceNotFoundError();
 
         const hasLiked : TInferSelectPostLike | undefined = await findFirstLike(currentUserId, postId);
@@ -146,11 +169,12 @@ const assignLikedPostsToUser = async (usersId : TPostAssignments) : Promise<TPos
     return matchedPosts as TPostWithRelations[];
 }
 
-const mergeLikedAndTrendingPosts = async (likedPosts : TPostWithRelations[], trendingPosts : TPostWithRelations[]) : 
-Promise<TPostWithRelations[]> => {
+const mergeLikedAndTrendingPosts = async (likedPosts : TPostWithRelations[], trendingPosts : TPostWithRelations[], 
+    currentUserPost : TPostWithRelations | undefined) : Promise<TPostWithRelations[]> => {
+
     const postMap = new Map<string, TPostWithRelations>();
-    [...likedPosts.splice(0, 150), ...trendingPosts.splice(0, 150)].forEach(post => {
-        postMap.set(post.id, post);
+    [...likedPosts.splice(0, 150), ...trendingPosts.splice(0, 150), currentUserPost ? [currentUserPost][0] : undefined].forEach(post => {
+        if(post) postMap.set(post.id, post);
     });
 
     const mergedPostsArray : TPostWithRelations[] = Array.from(postMap.values());
@@ -166,8 +190,8 @@ const parsedPostsArray = (postsArray: TPostWithRelations[]): TPostWithRelations[
         const fixedResult: TPostWithRelations = {
             id, text, image, userId, createdAt, updatedAt, 
             user: typeof user === 'string' ? JSON.parse(user) : user, 
-            comments: comments ? (typeof comments === 'string' ? JSON.parse(comments) : comments) : [], 
-            likes: likes ? (typeof likes === 'string' ? JSON.parse(likes) : likes.length) : [], 
+            comments: comments ? (typeof comments === 'string' ? JSON.parse(comments).length : comments) : [], 
+            likes: likes ? (typeof likes === 'string' ? JSON.parse(likes).length : likes.length) : [], 
             tags
         };
         matchedPosts.push(fixedResult);
@@ -175,12 +199,24 @@ const parsedPostsArray = (postsArray: TPostWithRelations[]): TPostWithRelations[
     return matchedPosts;
 };
 
+const getCurrentUserLatestPost = async (currentUserId : string) : Promise<TPostWithRelations | undefined> => {
+    const currentUserPost : TPostWithRelations = await findFirstPostWithUserId(currentUserId);
+    if(!currentUserPost) return undefined;
+
+    const { id, text, image, userId, createdAt, updatedAt, user, comments, likes, tags } = currentUserPost;
+    return {
+        id, text, image, userId, createdAt, updatedAt, user: typeof user === 'string' ? JSON.parse(user) : user, 
+        comments: comments ? (typeof comments === 'string' ? JSON.parse(comments).length : comments) : [], 
+        likes: likes ? (typeof likes === 'string' ? JSON.parse(likes).length : likes.length) : [], tags
+    }
+}
+
 export const editPostService = async (currentUserId : string, postId : string, image : string | null, text : string) => {
     try {
         let currentPost : TPostWithRelations;
 
         currentPost = await getAllFromHashCache(`post:${postId}`);
-        if(Object.keys(currentPost).length == 0) currentPost = await findFirstPost(postId);
+        if(Object.keys(currentPost).length == 0) currentPost = await findFirstPostWithPostId(postId);
         
         if(currentPost.userId !== currentUserId) throw new ForbiddenError();
         if(image) {
@@ -211,7 +247,7 @@ export const deletePostService = async (postId : string, currentUserId : string)
         let currentPost : TPostWithRelations;
         currentPost = await getAllFromHashCache(`post:${postId}`);
 
-        if(Object.keys(currentPost).length == 0) currentPost = await findFirstPost(postId);
+        if(Object.keys(currentPost).length == 0) currentPost = await findFirstPostWithPostId(postId);
         if(currentPost.userId !== currentUserId) throw new ForbiddenError();
 
         postEventEmitter.emit('delete-post', currentPost.userId, postId);

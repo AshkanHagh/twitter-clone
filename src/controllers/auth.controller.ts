@@ -55,7 +55,7 @@ export const logout = CatchAsyncError(async (req : Request, res : Response, next
 
 export const refreshToken = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
-        const refreshToken : string = req.cookies.refresh_token;
+        const refreshToken : string = req.cookies['refresh_token'];
         const user : TUserWithProfileInfo = await refreshTokenService(refreshToken);
 
         req.user = user;
@@ -66,3 +66,6 @@ export const refreshToken = CatchAsyncError(async (req : Request, res : Response
         return next(error);
     }
 });
+
+// 1. Add Google|Github|Microsoft auth
+// 2. Add reset password

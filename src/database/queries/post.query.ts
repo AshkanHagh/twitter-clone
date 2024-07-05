@@ -31,9 +31,21 @@ export const findSuggestedPosts = async (postsId : string[]) : Promise<TPostWith
     }) as TPostWithRelations[];
 }
 
-export const findFirstPost = async (postId : string) : Promise<TPostWithRelations> => {
+export const findFirstPostWithPostId = async (postId : string) : Promise<TPostWithRelations> => {
     return await db.query.PostTable.findFirst({
         where : (table, funcs) => funcs.eq(table.id, postId),
+        with : {
+            user : {columns : {password : false}},
+            likes : {with : {user : true}, columns : {postId : false, userId : false}},
+            comments : {with : {comment : true}, columns : {commentId : false, postId : false}},
+            tags : {columns : {postId : false}}
+        }, orderBy : (table, funcs) => funcs.desc(table.createdAt)
+    }) as TPostWithRelations;
+}
+
+export const findFirstPostWithUserId = async (userId : string) : Promise<TPostWithRelations> => {
+    return await db.query.PostTable.findFirst({
+        where : (table, funcs) => funcs.eq(table.userId, userId),
         with : {
             user : {columns : {password : false}},
             likes : {with : {user : true}, columns : {postId : false, userId : false}},
@@ -82,4 +94,10 @@ export const deleteFirstPost = async (postId : string) : Promise<void> => {
 
 export const getPostCreatorAndId = async (postId : string) : Promise<{userId : string, id : string} | undefined> => {
     return await db.query.PostTable.findFirst({where : (table, funcs) => funcs.eq(table.id, postId), columns : {userId : true, id : true}});
+}
+
+export const findManyLikes = async (currentUserId : string) : Promise<TInferSelectPostLike[]> => {
+    return await db.query.PostLikeTable.findMany({
+        where : (table, funcs) => funcs.eq(table.userId, currentUserId)
+    })
 }

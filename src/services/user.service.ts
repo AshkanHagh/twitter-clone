@@ -64,7 +64,7 @@ export const searchUserService = async (username : string, currentUserId : strin
             if(usernameRegExp.test(user.username)) return user;
         }));
 
-        if(matchedUsersInCache.length <= 0) {
+        if(matchedUsersInCache.length == 0) {
             const searchedUsersFromDB : TUserWithProfileInfo[] = await searchUserByUsername(username);
             const filteredUsersFromDB : TUserWithProfileInfo[] = searchedUsersFromDB.filter(user => user.id !== currentUserId);
             return filteredUsersFromDB;
@@ -170,7 +170,7 @@ export const updateAccountPasswordService = async (currentUserId : string, newPa
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 };
-
+// DONE Fixed the inArray must have a value for liked post creators bug
 export const suggestionForFollowService = async (currentUserId : string) => {
     try {
         let topFollowedUsers : TUserWithProfileInfo[];
@@ -194,6 +194,7 @@ export const suggestionForFollowService = async (currentUserId : string) => {
         
     } catch (err) {
         const error = err as TErrorHandler;
+        console.log(error);
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 };

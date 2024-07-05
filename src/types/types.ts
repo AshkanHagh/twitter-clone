@@ -141,12 +141,8 @@ export type TPostCommentWithAuthor = {
 }
 
 export type TFixedPostComment = {
-    id: string;
-    authorId: string;
-    text: string;
-    createdAt: Date | null;
+    id: string; authorId: string; text: string; createdAt: Date | null;
     author: {
-        username: string;
-        profilePic: string | null | undefined;
+        username: string; profilePic: string | null | undefined;
     };
 }

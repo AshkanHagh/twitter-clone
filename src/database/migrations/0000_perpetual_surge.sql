@@ -18,22 +18,22 @@ END $$;
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "comments" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"authorId" uuid,
+	"authorId" uuid NOT NULL,
 	"text" text NOT NULL,
 	"createdAt" timestamp DEFAULT now(),
 	"updatedAt" timestamp DEFAULT now()
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "followers" (
-	"followerId" uuid,
-	"followedId" uuid,
+	"followerId" uuid NOT NULL,
+	"followedId" uuid NOT NULL,
 	CONSTRAINT "followers_followerId_followedId_pk" PRIMARY KEY("followerId","followedId")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "notifications" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"from" uuid,
-	"to" uuid,
+	"from" uuid NOT NULL,
+	"to" uuid NOT NULL,
 	"type" "type",
 	"read" boolean DEFAULT false,
 	"createdAt" timestamp DEFAULT now(),
@@ -41,20 +41,20 @@ CREATE TABLE IF NOT EXISTS "notifications" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "post_comments" (
-	"commentId" uuid,
-	"postId" uuid,
+	"commentId" uuid NOT NULL,
+	"postId" uuid NOT NULL,
 	CONSTRAINT "post_comments_postId_commentId_pk" PRIMARY KEY("postId","commentId")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "post_likes" (
-	"userId" uuid,
-	"postId" uuid,
+	"userId" uuid NOT NULL,
+	"postId" uuid NOT NULL,
 	CONSTRAINT "post_likes_postId_userId_pk" PRIMARY KEY("postId","userId")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "posts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"userId" uuid,
+	"userId" uuid NOT NULL,
 	"text" text NOT NULL,
 	"image" text,
 	"createdAt" timestamp DEFAULT now(),
@@ -62,15 +62,15 @@ CREATE TABLE IF NOT EXISTS "posts" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "post_tags" (
-	"postId" uuid,
+	"postId" uuid NOT NULL,
 	"tag" varchar(255) NOT NULL,
 	CONSTRAINT "post_tags_postId_pk" PRIMARY KEY("postId")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "replies" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"commentId" uuid,
-	"authorId" uuid,
+	"commentId" uuid NOT NULL,
+	"authorId" uuid NOT NULL,
 	"text" text NOT NULL,
 	"createdAt" timestamp DEFAULT now(),
 	"updatedAt" timestamp DEFAULT now()
@@ -78,13 +78,13 @@ CREATE TABLE IF NOT EXISTS "replies" (
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "save_posts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"postId" uuid,
-	"userId" uuid
+	"postId" uuid NOT NULL,
+	"userId" uuid NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "profiles" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"userId" uuid,
+	"userId" uuid NOT NULL,
 	"fullName" varchar(255),
 	"bio" varchar(255),
 	"profilePic" text,

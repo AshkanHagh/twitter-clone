@@ -1,15 +1,20 @@
 import { EventEmitter } from 'node:events';
-import { deleteFirstPost, deleteLikePost, findFirstPost, findManyPosts, insertLikePost } from '../database/queries/post.query';
+import { deleteFirstPost, deleteLikePost, findFirstPostWithPostId, findManyPosts, insertLikePost } from '../database/queries/post.query';
 import { addToHashCache, addToListWithScore, deleteFromCache, getListScore, removeScoreCache } from '../database/cache/index.cache';
 import type { TSelectComment, TInferSelectUserNoPass, TPostWithRelations } from '../types/types';
 import { removeIndexFromMultipleListCache } from '../database/cache/post.cache';
 import { insertNotification } from '../database/queries/notification.query';
-import { arrayToKeyValuePairs } from '../services/post.service';
+import { arrayToKeyValuePairs, calculateNumberOfSuggestions } from '../services/post.service';
 
 export const postEventEmitter = new EventEmitter();
 
-postEventEmitter.on('create-post', async (postId : string) : Promise<void> => {
-    const post : TPostWithRelations = await findFirstPost(postId);
+postEventEmitter.on('create-post', async (currentUserId : string, createdPostId : string) : Promise<void> => {
+    const suggestionCount = await calculateNumberOfSuggestions(currentUserId, createdPostId, 'cerate');
+    addToListWithScore(`suggest_post:${currentUserId}`, suggestionCount, createdPostId);
+});
+
+postEventEmitter.on('post_cache', async (postId : string) : Promise<void> => {
+    const post : TPostWithRelations = await findFirstPostWithPostId(postId);
     const { id, text, image, createdAt, updatedAt, comments, likes, tags, user, userId} = post;
     const likesUserInfo : TInferSelectUserNoPass[] | undefined = likes?.map(user => user.user);
     const commentsInfo : TSelectComment[] | undefined = comments?.map(comment => comment.comment);
@@ -41,7 +46,7 @@ postEventEmitter.on('update-post-cache', async () : Promise<void> => {
 });
 
 postEventEmitter.on('updated-post', async (postId : string) : Promise<void> => {
-    const post : TPostWithRelations = await findFirstPost(postId);
+    const post : TPostWithRelations = await findFirstPostWithPostId(postId);
     const { id, text, image, createdAt, updatedAt, comments, likes, tags, user, userId} = post;
     const likesUserInfo : TInferSelectUserNoPass[] | undefined = likes?.map(user => user.user);
     const commentsInfo : TSelectComment[] | undefined = comments?.map(comment => comment.comment);
@@ -62,14 +67,16 @@ postEventEmitter.on('delete-post', async (userId : string, postId : string) : Pr
     ])
 })
 
-postEventEmitter.on('like-post', async (currentUserId : string, userId : string, postId : string) : Promise<void> => {
+postEventEmitter.on('like-post', async (currentUserId : string, creatorId : string, postId : string) :
+Promise<void> => {
+    const suggestionCount = await calculateNumberOfSuggestions(creatorId, postId, 'other');
     await Promise.all([
-        await insertNotification(currentUserId, userId, 'like'),
+        await insertNotification(currentUserId, creatorId, 'like'),
         await insertLikePost(currentUserId, postId)
     ]);
 
-    addToListWithScore(`posts_liked:${currentUserId}`, 1, userId);
-    addToListWithScore(`suggest_post:${userId}`, 3, postId);
+    addToListWithScore(`posts_liked:${currentUserId}`, 1, creatorId);
+    addToListWithScore(`suggest_post:${creatorId}`, suggestionCount, postId);
     postEventEmitter.emit('updated-post', postId);
 })
 

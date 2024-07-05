@@ -1,4 +1,4 @@
-import { addHashListCache, addToListWithScore, removeFromHashListCache } from '../database/cache/index.cache';
+import { addHashListCache, addToListWithScore, getHashWithIndexCache, removeFromHashListCache } from '../database/cache/index.cache';
 import { deleteFirstComment, findManyCommentsByPostId, insertComment, updateComment } from '../database/queries/comment.query';
 import { getPostCreatorAndId } from '../database/queries/post.query';
 import { postEventEmitter } from '../events/post.event';
@@ -8,14 +8,21 @@ import type { TErrorHandler, TFixedPostComment, TPostCommentWithAuthor, TSelectC
 
 export const addCommentService = async (postId : string, currentUserId : string, text : string) : Promise<TSelectComment> => {
     try {
-        const desiredPost : {userId : string, id : string} | undefined = await getPostCreatorAndId(postId);
+        let desiredPost : {userId : string, id : string} | undefined;
+        const desiredPostCache : string = await getHashWithIndexCache(`post:${postId}`, 'userId');
+
+        desiredPost = {id : postId, userId : desiredPostCache};
+        if(!desiredPostCache) desiredPost = await getPostCreatorAndId(postId);
+        
         if(!desiredPost) throw new ResourceNotFoundError();
         const newComment : TSelectComment = await insertComment(currentUserId, postId, text);
 
-        addHashListCache(`post_comments:${postId}`, newComment.id, newComment, 2419200);
-        addToListWithScore(`suggest_post:${desiredPost.userId}`, 1, desiredPost.id);
-        postEventEmitter.emit('create-post', postId);
-
+        await Promise.all([
+            addHashListCache(`post_comments:${postId}`, newComment.id, newComment, 2419200),
+            addToListWithScore(`suggest_post:${desiredPost.userId}`, 1, desiredPost.id),
+        ]);
+        
+        postEventEmitter.emit('create-post', postId)
         return newComment;
         
     } catch (err) {
@@ -51,10 +58,13 @@ export const deleteCommentService = async (commentId : string, postId : string, 
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 }
-
-export const postCommentsService = async (postId : string) : Promise<TFixedPostComment[]> => {
+// 1. Add transaction and dependency injection to all queries in project
+// 2. Add like And Replay crud to comments
+// 3. Use caching to boost performance comment functions
+export const postCommentsService = async (postId : string, limit : number | undefined, startIndex : number | undefined) 
+: Promise<TFixedPostComment[]> => {
     try {
-        const postComments : TPostCommentWithAuthor[] = await findManyCommentsByPostId(postId);
+        const postComments : TPostCommentWithAuthor[] = await findManyCommentsByPostId(postId, limit, startIndex);
         const modifiedPostComments : TFixedPostComment[] = postComments.map(comment => {
             return {
                 id : comment.comment.id,

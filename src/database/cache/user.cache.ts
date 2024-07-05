@@ -12,7 +12,7 @@ export const searchByUsernameInCache = async (username : string) : Promise<TUser
         const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'user:*', 'COUNT', 100);
         for (const key of keys) {
             const user : TUserProfile = await getAllFromHashCache(key);
-            if(escapedQuery.test(user.username)) {matchedUsers.push(user)};
+            if(escapedQuery.test(user.username)) matchedUsers.push(user);
         }
         cursor = newCursor;
     } while (cursor !== '0');

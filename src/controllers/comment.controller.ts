@@ -46,9 +46,10 @@ export const deleteComment = CatchAsyncError(async (req : Request, res : Respons
 
 export const postComments = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
+        const { limit, startIndex } = req.query as {limit : string, startIndex : string};
         const { postId } = req.params as {postId : string};
 
-        const comments : TFixedPostComment[] = await postCommentsService(postId);
+        const comments : TFixedPostComment[] = await postCommentsService(postId, +limit || undefined, +startIndex || undefined);
         res.status(200).json({success : true, comments});
         
     } catch (error) {
