@@ -55,6 +55,6 @@ export const removeScoreCache = async (listKey : string, listIndex : string) => 
     await redis.zrem(listKey, listIndex);
 }
 
-export const getListScore = async (listKey : string) => {
+export const getListScore = async (listKey : string) : Promise<string[]> => {
     return await redis.zrevrange(listKey, 0, -1, 'WITHSCORES');
 }

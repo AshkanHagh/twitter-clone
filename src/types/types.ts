@@ -128,6 +128,31 @@ export type TFollowersRelations = {
     } | null;
 }
 
+export type TFollowersPostRelations = {
+    follower : {
+        posts : {
+            id : string; userId : string; text : string; image : string | null; createdAt : Date | null; updatedAt : Date | null
+            comments : TInferSelectPostComment[]
+            likes : TInferSelectPostLike[]
+            tags : TInferSelectTag | null
+            user : TInferSelectUserNoPass;
+        }[];
+    };
+};
+
+export type TFollowingsPost = {
+    id : TInferSelectPost['id']; userId : TInferSelectPost['userId']; text : TInferSelectPost['text']; image : TInferSelectPost['image']; 
+    createdAt : TInferSelectPost['createdAt']; updatedAt : TInferSelectPost['updatedAt']
+    comments : TInferSelectPostComment[];
+    likes : TInferSelectPostLike[]; tags : TInferSelectTag | null; user : TInferSelectUserNoPass; 
+}
+
+export type TModifiedFollowingsPost = {
+    id : TInferSelectPost['id']; userId : TInferSelectPost['userId']; text : TInferSelectPost['text']; image : TInferSelectPost['image']; 
+    createdAt : TInferSelectPost['createdAt']; updatedAt : TInferSelectPost['updatedAt']; user : TInferSelectUserNoPass; 
+    comments : number; likes : number; tags : TInferSelectTag | string; 
+}
+
 export type TPostCommentWithAuthor = {
     comment : {
         id : string; createdAt : Date | null; updatedAt : Date | null; text : string; authorId : string;

@@ -1,9 +1,9 @@
-import type { TPostAssignments, TErrorHandler, TUserProfile, TPostWithRelations, TInferSelectPostLike, TLikesArray, TInferSelectPost, TInferSelectUserNoPass, TUserId } from '../types/types';
+import type { TPostAssignments, TErrorHandler, TUserProfile, TPostWithRelations, TInferSelectPostLike, TLikesArray, TInferSelectPost, TInferSelectUserNoPass, TUserId, TFollowersPostRelations, TFollowingsPost, TInferSelectTag, TModifiedFollowingsPost } from '../types/types';
 import { scanTheCache, scanPostCache } from '../database/cache/post.cache';
 import { getAllFromHashCache, getListScore } from '../database/cache/index.cache'
 import { findFirstLike, findFirstPostWithPostId, findFirstPostWithUserId, findManyPostByUserId, findSuggestedPosts, insertPost, 
     updatePost } from '../database/queries/post.query';
-import { countUserTable, findLimitedUsers } from '../database/queries/user.query';
+import { countUserTable, findLimitedUsers, findManyFollowingPost } from '../database/queries/user.query';
 import { ForbiddenError, ResourceNotFoundError } from '../libs/utils';
 import ErrorHandler from '../libs/utils/errorHandler';
 import { v2 as cloudinary, type UploadApiResponse } from 'cloudinary';
@@ -19,19 +19,23 @@ const combinePostCreator = (post : TInferSelectPost, user : TInferSelectUserNoPa
     return {id, text, image, userId : {...creator}, createdAt, updatedAt}
 }
 
-export const calculateNumberOfSuggestions = async (creatorId : (string | undefined), postId : (string | undefined), 
-    returnType : 'cerate' | 'other') : Promise<number> => {
-    const totalUsers = await countUserTable();
-    const percentage = 0.01;
-    const numberOfSuggestions = Math.ceil(totalUsers * percentage);
+export const calculateNumberOfSuggestions = async (creatorId : string, postId : string, returnType : 'cerate' | 'other') : Promise<number> => {
+    const totalUsers : number = await countUserTable();
+    const percentage : number = 0.01;
+    const numberOfSuggestions : number = Math.ceil(totalUsers * percentage);
 
     if(returnType == 'other') {
-        const score = await getListScore(`suggest_post:${creatorId}`);
+        const score : string[] = await getListScore(`suggest_post:${creatorId}`);
+        if(score.indexOf(postId) == -1) return numberOfSuggestions;
+
         const suggestionNumber : Array<{postId : string, suggestCount : number}> = 
         Object.entries(arrayToKeyValuePairs(score)).map(([postId, suggestCount]) => ({postId, suggestCount : +suggestCount}));
 
-        const suggestionPost = suggestionNumber.filter(post => post.postId == postId);
-        const suggestionCount = totalUsers <= suggestionPost[0].suggestCount ? 0 : numberOfSuggestions;
+        const suggestionPost : Array<{postId : string, suggestCount : number}> = suggestionNumber.filter(post => post.postId == postId) as 
+        Array<{postId : string, suggestCount : number}>
+
+        const suggestionLimit : number = suggestionPost[0].suggestCount;
+        const suggestionCount : number = totalUsers <= suggestionLimit ? 0 : numberOfSuggestions;
         return suggestionCount;
     }
     return numberOfSuggestions;
@@ -96,6 +100,7 @@ export const suggestedPostsService = async (currentUserId : string) : Promise<TP
     try {
         let suggestedPosts : TPostWithRelations[] = [];
 
+        const followingPosts : TModifiedFollowingsPost[] = await getFollowingPosts(currentUserId);
         const likedPostsUsers : Record<string, string> = await fetchAndConvertCacheToObject('posts_liked:*');
         const likedPosts : TPostWithRelations[] = await assignLikedPostsToUser(likedPostsUsers);
 
@@ -112,15 +117,15 @@ export const suggestedPostsService = async (currentUserId : string) : Promise<TP
         if(postsForCurrentUser.length !== 0) {
             const suggestedPostsCache : TPostWithRelations[] = await getMultipleFromHashCache('post', postsForCurrentUser);
             suggestedPosts = parsedPostsArray(suggestedPostsCache) as TPostWithRelations[];
-            if(suggestedPostsCache.length == 0) suggestedPosts = await findSuggestedPosts(postsForCurrentUser);
+            if(suggestedPostsCache.length == 0) suggestedPosts = parsedPostsArray(await findSuggestedPosts(postsForCurrentUser)) as 
+            TPostWithRelations[];
         }
 
-        const combinedPosts : TPostWithRelations[] = await mergeLikedAndTrendingPosts(likedPosts, suggestedPosts, currentUserPost);
+        const combinedPosts : TPostWithRelations[] = await mergeLikedAndTrendingPosts(likedPosts, suggestedPosts, currentUserPost, followingPosts);
         return combinedPosts;
         
     } catch (err) {
         const error = err as TErrorHandler;
-        console.log(error);
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 }
@@ -158,7 +163,7 @@ const assignLikedPostsToUser = async (usersId : TPostAssignments) : Promise<TPos
             if (post.userId === userId) {
                 return parsedPostsArray(cachedPosts) as TPostWithRelations[];
             } else {
-                return await findManyPostByUserId(userId) as TPostWithRelations[];
+                return parsedPostsArray(await findManyPostByUserId(userId)) as TPostWithRelations[];
             }
         });
         const postsArrays : TPostWithRelations[][] = await Promise.all(postPromise);
@@ -170,29 +175,30 @@ const assignLikedPostsToUser = async (usersId : TPostAssignments) : Promise<TPos
 }
 
 const mergeLikedAndTrendingPosts = async (likedPosts : TPostWithRelations[], trendingPosts : TPostWithRelations[], 
-    currentUserPost : TPostWithRelations | undefined) : Promise<TPostWithRelations[]> => {
+    currentUserPost : TPostWithRelations | undefined, followingPosts : TModifiedFollowingsPost[]) : Promise<TPostWithRelations[]> => {
 
     const postMap = new Map<string, TPostWithRelations>();
-    [...likedPosts.splice(0, 150), ...trendingPosts.splice(0, 150), currentUserPost ? [currentUserPost][0] : undefined].forEach(post => {
-        if(post) postMap.set(post.id, post);
+    const userPost = currentUserPost ? [currentUserPost][0] : undefined;
+
+    [...likedPosts.splice(0, 150), ...trendingPosts.splice(0, 150), userPost, ...followingPosts].forEach(post => {
+        if(post) postMap.set(post.id, post as TPostWithRelations)
     });
 
     const mergedPostsArray : TPostWithRelations[] = Array.from(postMap.values());
-    return mergedPostsArray 
+    return mergedPostsArray;
 }
 
-const parsedPostsArray = (postsArray: TPostWithRelations[]): TPostWithRelations[] => {
+const parsedPostsArray = (postsArray: (TPostWithRelations[] | TFollowingsPost[])): TPostWithRelations[] | TFollowingsPost[] => {
     const matchedPosts: TPostWithRelations[] = [];
 
     for (const post of postsArray) {
         const { id, text, image, userId, createdAt, updatedAt, user, comments, likes, tags } = post;
 
-        const fixedResult: TPostWithRelations = {
-            id, text, image, userId, createdAt, updatedAt, 
-            user: typeof user === 'string' ? JSON.parse(user) : user, 
-            comments: comments ? (typeof comments === 'string' ? JSON.parse(comments).length : comments) : [], 
-            likes: likes ? (typeof likes === 'string' ? JSON.parse(likes).length : likes.length) : [], 
-            tags
+        const fixedResult : TPostWithRelations = {
+            id, text, image, userId, createdAt, updatedAt, user : typeof user === 'string' ? JSON.parse(user) : user, 
+            comments : comments ? (typeof comments === 'string' ? JSON.parse(comments).length : comments) : [], 
+            likes : likes ? (typeof likes === 'string' ? JSON.parse(likes).length : likes.length) : [], 
+            tags : tags as TInferSelectTag || ''
         };
         matchedPosts.push(fixedResult);
     }
@@ -205,10 +211,37 @@ const getCurrentUserLatestPost = async (currentUserId : string) : Promise<TPostW
 
     const { id, text, image, userId, createdAt, updatedAt, user, comments, likes, tags } = currentUserPost;
     return {
-        id, text, image, userId, createdAt, updatedAt, user: typeof user === 'string' ? JSON.parse(user) : user, 
-        comments: comments ? (typeof comments === 'string' ? JSON.parse(comments).length : comments) : [], 
-        likes: likes ? (typeof likes === 'string' ? JSON.parse(likes).length : likes.length) : [], tags
+        id, text, image, userId, createdAt, updatedAt, user : typeof user === 'string' ? JSON.parse(user) : user, 
+        comments : comments ? (typeof comments === 'string' ? JSON.parse(comments).length : 0) : 0, 
+        likes : likes ? (typeof likes === 'string' ? JSON.parse(likes).length : 0) : 0, 
+        tags : tags as TInferSelectTag || ''
     }
+}
+
+const fixedResult = (posts : TFollowingsPost[]) : TModifiedFollowingsPost[] => {
+    return posts.map(post => {
+        const { id, text, image, userId, createdAt, updatedAt, user, comments, likes, tags } = post;
+        return {
+            id, text, image, userId, createdAt, updatedAt, user, 
+            comments : comments.length, likes : likes.length, tags : tags as TInferSelectTag || ''
+        }
+    });
+}
+
+const getFollowingPosts = async (currentUserId : string) : Promise<TModifiedFollowingsPost[]> => {
+    const followingPostMap : Map<string, TFollowingsPost> = new Map<string, TFollowingsPost>();
+
+    const followings : TFollowersPostRelations[] = await findManyFollowingPost(currentUserId, 0);
+    followings.forEach(following => {
+        following.follower.posts.sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime());
+
+        return following.follower.posts.forEach(post => {
+            followingPostMap.set(post.userId, post)
+        });
+    })
+    
+    const followingPost : TFollowingsPost[] = Array.from(followingPostMap.values());
+    return fixedResult(followingPost);
 }
 
 export const editPostService = async (currentUserId : string, postId : string, image : string | null, text : string) => {
@@ -221,9 +254,8 @@ export const editPostService = async (currentUserId : string, postId : string, i
         if(currentPost.userId !== currentUserId) throw new ForbiddenError();
         if(image) {
             const imageName : string | undefined = currentPost.image!.split('/').pop()?.split('.')[0];
-            if (imageName) {
-                await cloudinary.uploader.destroy(imageName);
-            }
+            if (imageName) await cloudinary.uploader.destroy(imageName);
+
             const uploadedResponse : UploadApiResponse = await cloudinary.uploader.upload(image);
 			image = uploadedResponse.secure_url;
         }

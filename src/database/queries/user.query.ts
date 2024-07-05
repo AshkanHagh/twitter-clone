@@ -1,5 +1,5 @@
 import { and, eq, sql } from 'drizzle-orm';
-import type { TFollowersRelations, TInferSelectFollowers, TInferSelectUserProfile, TInferUpdateUser, TUpdateProfileInfo, 
+import type { TFollowersPostRelations, TFollowersRelations, TInferSelectFollowers, TInferSelectUserProfile, TInferUpdateUser, TUpdateProfileInfo, 
     TUserId, TUserWithProfileInfo, TUserWithRelations} from '../../types/types';
 import { db } from '../db';
 import { FollowersTable, UserProfileTable, UserTable } from '../schema';
@@ -87,6 +87,17 @@ export const findManyFollowings = async (currentUserId : string, limit : number)
             follower : {with : {followings : {columns : {followerId : false, followedId : false}, with : {follower : {columns : {password : false}, with : {profile : {columns : {id : false, userId : false}}}}}}}, 
             columns : {}}
         }
+    });
+}
+
+export const findManyFollowingPost = async (currentUserId : string, limit : number) : Promise<TFollowersPostRelations[]> => {
+    return await db.query.FollowersTable.findMany({
+        where : (table, funcs) => funcs.eq(table.followerId, currentUserId), limit,
+        with : {
+            follower : {
+                columns : {}, with : {posts : {with : {comments : true, likes : true, tags : true, user : {columns : {password : false}}}}}
+            }
+        }, columns : {followerId : false, followedId : false}
     });
 }
 

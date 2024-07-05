@@ -75,22 +75,29 @@ Promise<void> => {
         await insertLikePost(currentUserId, postId)
     ]);
 
+    console.log('liked');
     addToListWithScore(`posts_liked:${currentUserId}`, 1, creatorId);
     addToListWithScore(`suggest_post:${creatorId}`, suggestionCount, postId);
     postEventEmitter.emit('updated-post', postId);
 })
 
-postEventEmitter.on('dislike-post', async (currentUserId : string, userId : string, postId : string) : Promise<void> => {
+postEventEmitter.on('dislike-post', async (currentUserId : string, creatorId : string, postId : string) : Promise<void> => {
+    const suggestionCount = await calculateNumberOfSuggestions(creatorId, postId, 'other');
     await deleteLikePost(currentUserId, postId);
     const likesArray : string[] = await getListScore(`posts_liked:${currentUserId}`);
+    const suggestionPostScore : Record<string, string> = arrayToKeyValuePairs(await getListScore(`suggest_post:${creatorId}`));
     const likeObject = arrayToKeyValuePairs(likesArray);
     
-    if(likeObject[userId] === '0' || likeObject[userId] === '1') {
-        removeScoreCache(`posts_liked:${currentUserId}`, userId);
+    if(likeObject[creatorId] === '0' || likeObject[creatorId] === '1') {
+        removeScoreCache(`posts_liked:${currentUserId}`, creatorId);
     }else {
-        addToListWithScore(`posts_liked:${currentUserId}`, -1, userId);
+        addToListWithScore(`posts_liked:${currentUserId}`, -1, creatorId);
     }
 
-    addToListWithScore(`suggest_post:${userId}`, -3, postId);
+    if(suggestionPostScore[creatorId] > '3') {
+        addToListWithScore(`suggest_post:${creatorId}`, -suggestionCount, postId);
+    }else {
+        removeScoreCache(`suggest_post:${creatorId}`, postId);
+    }
     postEventEmitter.emit('updated-post', postId);
 })
