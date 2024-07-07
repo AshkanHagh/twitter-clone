@@ -9,7 +9,7 @@ import { arrayToKeyValuePairs, calculateNumberOfSuggestions } from '../services/
 export const postEventEmitter = new EventEmitter();
 
 postEventEmitter.on('create-post', async (currentUserId : string, createdPostId : string) : Promise<void> => {
-    const suggestionCount = await calculateNumberOfSuggestions(currentUserId, createdPostId, 'cerate');
+    const suggestionCount = await calculateNumberOfSuggestions(currentUserId, createdPostId, 'cerate', 0.15);
     addToListWithScore(`suggest_post:${currentUserId}`, suggestionCount, createdPostId);
 });
 
@@ -45,20 +45,6 @@ postEventEmitter.on('update-post-cache', async () : Promise<void> => {
     }
 });
 
-postEventEmitter.on('updated-post', async (postId : string) : Promise<void> => {
-    const post : TPostWithRelations = await findFirstPostWithPostId(postId);
-    const { id, text, image, createdAt, updatedAt, comments, likes, tags, user, userId} = post;
-    const likesUserInfo : TInferSelectUserNoPass[] | undefined = likes?.map(user => user.user);
-    const commentsInfo : TSelectComment[] | undefined = comments?.map(comment => comment.comment);
-
-    const fixedResult = {
-        id, userId, text, image, createdAt, updatedAt,
-        comments : JSON.stringify(commentsInfo), likes : JSON.stringify(likesUserInfo),
-        tags, user : JSON.stringify(user)
-    };
-    addToHashCache(`post:${post.id}`, fixedResult, 2419200);
-});
-
 postEventEmitter.on('delete-post', async (userId : string, postId : string) : Promise<void> => {
     await Promise.all([
         deleteFirstPost(postId), deleteFromCache(`post:${postId}`),
@@ -69,20 +55,19 @@ postEventEmitter.on('delete-post', async (userId : string, postId : string) : Pr
 
 postEventEmitter.on('like-post', async (currentUserId : string, creatorId : string, postId : string) :
 Promise<void> => {
-    const suggestionCount = await calculateNumberOfSuggestions(creatorId, postId, 'other');
+    const suggestionCount = await calculateNumberOfSuggestions(creatorId, postId, 'other', 0.5);
     await Promise.all([
         await insertNotification(currentUserId, creatorId, 'like'),
         await insertLikePost(currentUserId, postId)
     ]);
 
-    console.log('liked');
     addToListWithScore(`posts_liked:${currentUserId}`, 1, creatorId);
     addToListWithScore(`suggest_post:${creatorId}`, suggestionCount, postId);
-    postEventEmitter.emit('updated-post', postId);
+    postEventEmitter.emit('post_cache', postId);
 })
 
 postEventEmitter.on('dislike-post', async (currentUserId : string, creatorId : string, postId : string) : Promise<void> => {
-    const suggestionCount = await calculateNumberOfSuggestions(creatorId, postId, 'other');
+    const suggestionCount = await calculateNumberOfSuggestions(creatorId, postId, 'other', 0.5);
     await deleteLikePost(currentUserId, postId);
     const likesArray : string[] = await getListScore(`posts_liked:${currentUserId}`);
     const suggestionPostScore : Record<string, string> = arrayToKeyValuePairs(await getListScore(`suggest_post:${creatorId}`));
@@ -99,5 +84,5 @@ postEventEmitter.on('dislike-post', async (currentUserId : string, creatorId : s
     }else {
         removeScoreCache(`suggest_post:${creatorId}`, postId);
     }
-    postEventEmitter.emit('updated-post', postId);
+    postEventEmitter.emit('post_cache', postId);
 })

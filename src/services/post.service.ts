@@ -19,9 +19,10 @@ const combinePostCreator = (post : TInferSelectPost, user : TInferSelectUserNoPa
     return {id, text, image, userId : {...creator}, createdAt, updatedAt}
 }
 
-export const calculateNumberOfSuggestions = async (creatorId : string, postId : string, returnType : 'cerate' | 'other') : Promise<number> => {
+export const calculateNumberOfSuggestions = async (creatorId : string, postId : string, returnType : 'cerate' | 'other', percent : number) :
+ Promise<number> => {
     const totalUsers : number = await countUserTable();
-    const percentage : number = 0.01;
+    const percentage : number = percent;
     const numberOfSuggestions : number = Math.ceil(totalUsers * percentage);
 
     if(returnType == 'other') {
@@ -76,10 +77,12 @@ export const arrayToKeyValuePairs = (keysArray : string[]) : Record<string, stri
 
 const assignTrendingPostsToUsers = async (tradingPosts : TPostAssignments, users : TUserId[]) : Promise<Record<string, string[]>> => {
     const totalUsers : number = users.length;
-    const postsId : string[] = Object.keys(tradingPosts);
     const userPostAssignments : Record<string, string[]> = {};
 
-    for (const postId of postsId) {
+    const postsId : string[] = Object.keys(tradingPosts);
+    const shuffledPostsId : string[] = shuffleArray(postsId);
+    
+    for (const postId of shuffledPostsId) {
         const userCount : number = +tradingPosts[postId]
 
         const shuffledUsers : TUserId[] = shuffleArray([...users]);
@@ -94,15 +97,18 @@ const assignTrendingPostsToUsers = async (tradingPosts : TPostAssignments, users
     }
     return userPostAssignments;
 }
-// 1. Show currentUser latest post always
-// 1. Each user always must have 60 post from random trending posts
+
 export const suggestedPostsService = async (currentUserId : string) : Promise<TPostWithRelations[]> => {
     try {
         let suggestedPosts : TPostWithRelations[] = [];
+        const likedPosts : TPostWithRelations[] = [];
 
         const followingPosts : TModifiedFollowingsPost[] = await getFollowingPosts(currentUserId);
-        const likedPostsUsers : Record<string, string> = await fetchAndConvertCacheToObject('posts_liked:*');
-        const likedPosts : TPostWithRelations[] = await assignLikedPostsToUser(likedPostsUsers);
+        const likedPostsUsers : Record<string, string> = await fetchAndConvertCacheToObject(`posts_liked:${currentUserId}`);
+        if(likedPostsUsers) {
+            const likedPostsResult : TPostWithRelations[] = await assignLikedPostsToUser(likedPostsUsers);
+            likedPosts.push(...likedPostsResult);
+        }
 
         const currentUserPost : TPostWithRelations | undefined = await getCurrentUserLatestPost(currentUserId);
         const trendingPosts : Record<string, string> = await fetchAndConvertCacheToObject('suggest_post:*');
@@ -167,11 +173,13 @@ const assignLikedPostsToUser = async (usersId : TPostAssignments) : Promise<TPos
             }
         });
         const postsArrays : TPostWithRelations[][] = await Promise.all(postPromise);
-        postsArrays.forEach(posts => matchedPosts.push(...posts.splice(0, 150)));
+        postsArrays.forEach(posts => matchedPosts.push(...posts));
     }
 
     if(matchedPosts.length <= 0) return [];
-    return matchedPosts as TPostWithRelations[];
+    return matchedPosts.splice(0, 15).sort((a, b) => 
+        new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+    ) as TPostWithRelations[];
 }
 
 const mergeLikedAndTrendingPosts = async (likedPosts : TPostWithRelations[], trendingPosts : TPostWithRelations[], 
@@ -185,21 +193,14 @@ const mergeLikedAndTrendingPosts = async (likedPosts : TPostWithRelations[], tre
     });
 
     const mergedPostsArray : TPostWithRelations[] = Array.from(postMap.values());
-    return mergedPostsArray;
+    return mergedPostsArray.filter(post => post.id);
 }
 
-const parsedPostsArray = (postsArray: (TPostWithRelations[] | TFollowingsPost[])): TPostWithRelations[] | TFollowingsPost[] => {
+const parsedPostsArray = (postsArray: TPostWithRelations[]): TPostWithRelations[] => {
     const matchedPosts: TPostWithRelations[] = [];
 
     for (const post of postsArray) {
-        const { id, text, image, userId, createdAt, updatedAt, user, comments, likes, tags } = post;
-
-        const fixedResult : TPostWithRelations = {
-            id, text, image, userId, createdAt, updatedAt, user : typeof user === 'string' ? JSON.parse(user) : user, 
-            comments : comments ? (typeof comments === 'string' ? JSON.parse(comments).length : comments) : [], 
-            likes : likes ? (typeof likes === 'string' ? JSON.parse(likes).length : likes.length) : [], 
-            tags : tags as TInferSelectTag || ''
-        };
+        const fixedResult : TPostWithRelations = parseAndFixResult(post);
         matchedPosts.push(fixedResult);
     }
     return matchedPosts;
@@ -209,13 +210,18 @@ const getCurrentUserLatestPost = async (currentUserId : string) : Promise<TPostW
     const currentUserPost : TPostWithRelations = await findFirstPostWithUserId(currentUserId);
     if(!currentUserPost) return undefined;
 
-    const { id, text, image, userId, createdAt, updatedAt, user, comments, likes, tags } = currentUserPost;
+    const fixedResult : TPostWithRelations = parseAndFixResult(currentUserPost);
+    return fixedResult;
+}
+
+const parseAndFixResult = (post : TPostWithRelations) : TPostWithRelations => {
+    const { id, text, image, userId, createdAt, updatedAt, user, comments, likes, tags } = post;
     return {
         id, text, image, userId, createdAt, updatedAt, user : typeof user === 'string' ? JSON.parse(user) : user, 
-        comments : comments ? (typeof comments === 'string' ? JSON.parse(comments).length : 0) : 0, 
-        likes : likes ? (typeof likes === 'string' ? JSON.parse(likes).length : 0) : 0, 
+        comments : comments ? (typeof comments === 'string' ? JSON.parse(comments).length : comments) : 0, 
+        likes : likes ? (typeof likes === 'string' ? JSON.parse(likes).length : likes.length) : 0, 
         tags : tags as TInferSelectTag || ''
-    }
+    };
 }
 
 const fixedResult = (posts : TFollowingsPost[]) : TModifiedFollowingsPost[] => {
@@ -227,11 +233,11 @@ const fixedResult = (posts : TFollowingsPost[]) : TModifiedFollowingsPost[] => {
         }
     });
 }
-
+// 1. Add the following that i have liked their post must and must recent following suggest their post only 
 const getFollowingPosts = async (currentUserId : string) : Promise<TModifiedFollowingsPost[]> => {
     const followingPostMap : Map<string, TFollowingsPost> = new Map<string, TFollowingsPost>();
 
-    const followings : TFollowersPostRelations[] = await findManyFollowingPost(currentUserId, 0);
+    const followings : TFollowersPostRelations[] = await findManyFollowingPost(currentUserId, 15);
     followings.forEach(following => {
         following.follower.posts.sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime());
 
@@ -265,7 +271,7 @@ export const editPostService = async (currentUserId : string, postId : string, i
         } as {image : string, text : string};
 
         const updatedPost : TInferSelectPost = await updatePost(postId, updateValues);
-        postEventEmitter.emit('updated-post', postId);
+        postEventEmitter.emit('post_cache', postId);
         return updatedPost;
         
     } catch (err) {

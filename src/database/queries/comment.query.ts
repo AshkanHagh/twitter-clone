@@ -3,21 +3,28 @@ import type { TPostCommentWithAuthor, TSelectComment } from '../../types/types';
 import { db } from '../db';
 import { CommentTable, PostCommentTable } from '../schema';
 import { ForbiddenError, ResourceNotFoundError } from '../../libs/utils';
+import { createTransaction } from '../../libs/utils/createTransaction';
 
 export const insertComment = async (authorId : string, postId : string, text : string) : Promise<TSelectComment> => {
-    const [newComment] = await db.insert(CommentTable).values({authorId, text}).returning();
-    await db.insert(PostCommentTable).values({postId, commentId : newComment.id});
+    const newComment = await db.transaction(async (trx) => {
+        const [newComment] = await trx.insert(CommentTable).values({authorId, text}).returning();
+        await trx.insert(PostCommentTable).values({postId, commentId : newComment.id});
+        return newComment; 
+    });
     return newComment;
 }
 
 export const updateComment = async (commentId : string, currentUserId : string, text : string) : Promise<TSelectComment> => {
-    await findFirstComment(commentId, currentUserId);
-    const updatedComment = await db.update(CommentTable).set({text}).where(eq(CommentTable.id, commentId)).returning();
-    return updatedComment[0];
+    const updatedComment = await db.transaction(async (trx) => {
+        await findFirstComment(commentId, currentUserId, trx);
+        const [updatedComment] = await trx.update(CommentTable).set({text}).where(eq(CommentTable.id, commentId)).returning();
+        return updatedComment;
+    })
+    return updatedComment;
 }
 
-export const findFirstComment = async (commentId : string, currentUserId : string) : Promise<TSelectComment> => {
-    const comment : TSelectComment | undefined = await db.query.CommentTable.findFirst({
+export const findFirstComment = async (commentId : string, currentUserId : string, trx = db) : Promise<TSelectComment> => {
+    const comment : TSelectComment | undefined = await trx.query.CommentTable.findFirst({
         where : (table, funcs) => funcs.eq(table.id, commentId)
     });
     if(!comment) throw new ResourceNotFoundError();
@@ -26,8 +33,10 @@ export const findFirstComment = async (commentId : string, currentUserId : strin
 }
 
 export const deleteFirstComment = async (commentId : string, currentUserId : string) : Promise<void> => {
-    await findFirstComment(commentId, currentUserId);
-    await db.delete(CommentTable).where(eq(CommentTable.id, commentId));
+    createTransaction(async (trx) => {
+        await findFirstComment(commentId, currentUserId, trx);
+        await trx.delete(CommentTable).where(eq(CommentTable.id, commentId));
+    })
 }
 
 export const findManyCommentsByPostId = async (postId : string, limit : number | undefined, offset : number | undefined) :

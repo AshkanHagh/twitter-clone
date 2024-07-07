@@ -97,7 +97,7 @@ export const findManyFollowingPost = async (currentUserId : string, limit : numb
             follower : {
                 columns : {}, with : {posts : {with : {comments : true, likes : true, tags : true, user : {columns : {password : false}}}}}
             }
-        }, columns : {followerId : false, followedId : false}
+        }, columns : {followerId : false, followedId : false}, orderBy : (table, funcs) => funcs.desc(table.createdAt)
     });
 }
 
