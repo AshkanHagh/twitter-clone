@@ -171,3 +171,20 @@ export type TFixedPostComment = {
         username: string; profilePic: string | null | undefined;
     };
 }
+
+export type TRepliesRelations = {
+    id : TInferSelectReplies['id']; commentId : TInferSelectReplies['commentId']; authorId : TInferSelectReplies['authorId'];
+    text : TInferSelectReplies['text']; createdAt : TInferSelectReplies['createdAt']; updatedAt : TInferSelectReplies['updatedAt'];
+    author : {
+        id? : TInferSelectUser['id']; username? : TInferSelectUser['username']; email? : TInferSelectUser['email']; role? : TInferSelectUser['role']; createdAt? : TInferSelectUser['createdAt']; updatedAt? : TInferSelectUser['updatedAt'];
+        profile : {profilePic : string | null} | null
+    }
+}
+
+export type TFixedCommentReplies = {
+    id : TInferSelectReplies['id']; commentId : TInferSelectReplies['commentId']; authorId : TInferSelectReplies['authorId'];
+    text : TInferSelectReplies['text']; createdAt : TInferSelectReplies['createdAt']; updatedAt : TInferSelectReplies['updatedAt'];
+    author : {
+        username : TInferSelectUser['username']; profilePic : string | null;
+    }
+}

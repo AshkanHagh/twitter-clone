@@ -130,11 +130,6 @@ export const findManyUsersById = async (usersId : string[], limit : number | und
     })
 }
 
-export const countedUsersRows = async () : Promise<number> => {
-    const result = await db.select({ count: sql`count(*)`.mapWith(Number) }).from(UserTable);
-    return result[0].count;
-};
-
 export const countUserTable = async () : Promise<number> => {
     const result = await db.select({ count: sql`count(*)`.mapWith(Number) }).from(UserTable);
     return result[0].count;

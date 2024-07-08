@@ -170,7 +170,7 @@ export const updateAccountPasswordService = async (currentUserId : string, newPa
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 };
-// DONE Fixed the inArray must have a value for liked post creators bug
+
 export const suggestionForFollowService = async (currentUserId : string) => {
     try {
         let topFollowedUsers : TUserWithProfileInfo[];

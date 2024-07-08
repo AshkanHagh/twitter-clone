@@ -1,5 +1,5 @@
 import type { TPostAssignments, TErrorHandler, TUserProfile, TPostWithRelations, TInferSelectPostLike, TLikesArray, TInferSelectPost, TInferSelectUserNoPass, TUserId, TFollowersPostRelations, TFollowingsPost, TInferSelectTag, TModifiedFollowingsPost } from '../types/types';
-import { scanTheCache, scanPostCache } from '../database/cache/post.cache';
+import { scanTheCache, scanPostCache, findManyUsersCache } from '../database/cache/post.cache';
 import { getAllFromHashCache, getListScore } from '../database/cache/index.cache'
 import { findFirstLike, findFirstPostWithPostId, findFirstPostWithUserId, findManyPostByUserId, findSuggestedPosts, insertPost, 
     updatePost } from '../database/queries/post.query';
@@ -102,6 +102,7 @@ export const suggestedPostsService = async (currentUserId : string) : Promise<TP
     try {
         let suggestedPosts : TPostWithRelations[] = [];
         const likedPosts : TPostWithRelations[] = [];
+        let activeUsers : Array<{id : string}>;
 
         const followingPosts : TModifiedFollowingsPost[] = await getFollowingPosts(currentUserId);
         const likedPostsUsers : Record<string, string> = await fetchAndConvertCacheToObject(`posts_liked:${currentUserId}`);
@@ -113,17 +114,19 @@ export const suggestedPostsService = async (currentUserId : string) : Promise<TP
         const currentUserPost : TPostWithRelations | undefined = await getCurrentUserLatestPost(currentUserId);
         const trendingPosts : Record<string, string> = await fetchAndConvertCacheToObject('suggest_post:*');
         // const userLimitCount = Object.entries(trendingPosts).map(([postId, quantity]) => +quantity).sort((a, b) => b - a).splice(0, 1);
-        const users = await findLimitedUsers();
+        const usersCache = await findManyUsersCache();
+        activeUsers = usersCache;
+        if(usersCache.length <= 50) activeUsers = await findLimitedUsers();
 
-        const trendingPostAssignments : Record<string, string[]> = await assignTrendingPostsToUsers(trendingPosts, users);
+        const trendingPostAssignments : Record<string, string[]> = await assignTrendingPostsToUsers(trendingPosts, activeUsers);
         const postsForCurrentUser : string[] = Object.keys(trendingPostAssignments).filter(postId => 
             trendingPostAssignments[postId].includes(currentUserId)
-        ).splice(0, 150);
+        );
 
         if(postsForCurrentUser.length !== 0) {
             const suggestedPostsCache : TPostWithRelations[] = await getMultipleFromHashCache('post', postsForCurrentUser);
             suggestedPosts = parsedPostsArray(suggestedPostsCache) as TPostWithRelations[];
-            if(suggestedPostsCache.length == 0) suggestedPosts = parsedPostsArray(await findSuggestedPosts(postsForCurrentUser)) as 
+            if(suggestedPostsCache.length <= 50) suggestedPosts = parsedPostsArray(await findSuggestedPosts(postsForCurrentUser)) as 
             TPostWithRelations[];
         }
 
@@ -188,7 +191,7 @@ const mergeLikedAndTrendingPosts = async (likedPosts : TPostWithRelations[], tre
     const postMap = new Map<string, TPostWithRelations>();
     const userPost = currentUserPost ? [currentUserPost][0] : undefined;
 
-    [...likedPosts.splice(0, 150), ...trendingPosts.splice(0, 150), userPost, ...followingPosts].forEach(post => {
+    [...likedPosts.splice(0, 75), ...trendingPosts.splice(0, 150), userPost, ...followingPosts].forEach(post => {
         if(post) postMap.set(post.id, post as TPostWithRelations)
     });
 
@@ -218,7 +221,7 @@ const parseAndFixResult = (post : TPostWithRelations) : TPostWithRelations => {
     const { id, text, image, userId, createdAt, updatedAt, user, comments, likes, tags } = post;
     return {
         id, text, image, userId, createdAt, updatedAt, user : typeof user === 'string' ? JSON.parse(user) : user, 
-        comments : comments ? (typeof comments === 'string' ? JSON.parse(comments).length : comments) : 0, 
+        comments : comments ? (typeof comments === 'string' ? JSON.parse(comments).length : comments.length) : 0, 
         likes : likes ? (typeof likes === 'string' ? JSON.parse(likes).length : likes.length) : 0, 
         tags : tags as TInferSelectTag || ''
     };

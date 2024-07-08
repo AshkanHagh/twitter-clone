@@ -15,8 +15,9 @@ const app = express();
 app.use(express.json({limit : '10mb'}));
 app.use(express.urlencoded({extended : true}));
 app.use(cookieParser());
-app.use(cors({origin : process.env.ORIGIN, credentials : true, allowedHeaders : '*'}));
+app.use(cors({origin : process.env.ORIGIN}));
 app.use(helmet());
+app.use(helmet({crossOriginResourcePolicy : {policy : 'cross-origin'}}));
 
 app.get('/', (req : Request, res : Response) => res.status(200).json({success : true, message : 'Welcome'}));
 

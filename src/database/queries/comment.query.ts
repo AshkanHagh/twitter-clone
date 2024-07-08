@@ -1,9 +1,10 @@
 import { eq } from 'drizzle-orm';
-import type { TPostCommentWithAuthor, TSelectComment } from '../../types/types';
+import type { TInferSelectReplies, TPostCommentWithAuthor, TSelectComment } from '../../types/types';
 import { db } from '../db';
-import { CommentTable, PostCommentTable } from '../schema';
+import { CommentTable, PostCommentTable, RepliesTable } from '../schema';
 import { ForbiddenError, ResourceNotFoundError } from '../../libs/utils';
 import { createTransaction } from '../../libs/utils/createTransaction';
+import { getHashWithIndexCache } from '../cache/index.cache';
 
 export const insertComment = async (authorId : string, postId : string, text : string) : Promise<TSelectComment> => {
     const newComment = await db.transaction(async (trx) => {
@@ -53,4 +54,47 @@ export const findManyComments = async (currentUserId : string) : Promise<{id : s
     return await db.query.CommentTable.findMany({
         where : (table, funcs) => funcs.eq(table.authorId, currentUserId), columns : {id : true}
     })
+}
+
+export const insertReplay = async (currentUserId : string, commentId : string, replayText : string) : Promise<TInferSelectReplies> => {
+    const comment : TSelectComment | undefined =  
+    await db.query.CommentTable.findFirst({where : (table, funcs) => funcs.eq(table.id, commentId)});
+    if(!comment) throw new ResourceNotFoundError();
+
+    const [newReplay] : TInferSelectReplies[] = await db.insert(RepliesTable).values({
+        authorId : currentUserId, commentId, text : replayText}).returning();
+    return newReplay;
+}
+
+const checkReplayAuthor = async (currentUserId : string, commentId : string, replayId : string) => {
+    let replayToModify : TInferSelectReplies | undefined;
+
+    const replayToModifyCache : TInferSelectReplies | undefined = JSON.parse(await getHashWithIndexCache(`comment_replies:${commentId}`, replayId));
+    replayToModify = replayToModifyCache;
+
+    if(!replayToModifyCache || Object.keys(replayToModifyCache).length == 0) {
+        replayToModify = await db.query.RepliesTable.findFirst({where : (table, funcs) => funcs.eq(table.id, replayId)});
+    }
+    if(replayToModify!.authorId !== currentUserId) throw new ForbiddenError();
+}
+
+export const updateReplay = async (currentUserId : string, commentId : string, replayId : string, replayText : string) : 
+Promise<TInferSelectReplies> => {
+    await checkReplayAuthor(currentUserId, commentId, replayId);
+
+    const [updatedReplay] : TInferSelectReplies[] = 
+    await db.update(RepliesTable).set({text : replayText}).where(eq(RepliesTable.id, replayId)).returning();
+    return updatedReplay;
+}
+
+export const deleteReplay = async (currentUserId : string, commentId : string, replayId : string) => {
+    await checkReplayAuthor(currentUserId, commentId, replayId);
+    await db.delete(RepliesTable).where(eq(RepliesTable.id, replayId));
+}
+
+export const findAllReplies = async (commentId : string, limit : number, offset : number) => {
+    return await db.query.RepliesTable.findMany({
+        where : (table, funcs) => funcs.eq(table.commentId, commentId),
+        with : {author : {columns : {password : false}, with : {profile : {columns : {profilePic : true}}}}}, limit, offset
+    });
 }

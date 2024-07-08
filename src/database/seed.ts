@@ -15,9 +15,8 @@ const main = async () => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('ashkan1386129', salt);
 
-    for(let index = 1; index < 20; index++) {
+    for(let index = 1; index < 150; index++) {
         const randomName = faker.person.fullName().toLowerCase();
-        console.log(`user :${index}`)
         const [user] = await db.insert(UserTable).values({
             email : faker.internet.email({firstName : randomName, lastName : `${index}`}), 
             username : faker.internet.userName({firstName : randomName, lastName : `${index}`}), password : hashedPassword

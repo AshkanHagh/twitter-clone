@@ -16,13 +16,12 @@ postEventEmitter.on('create-post', async (currentUserId : string, createdPostId 
 postEventEmitter.on('post_cache', async (postId : string) : Promise<void> => {
     const post : TPostWithRelations = await findFirstPostWithPostId(postId);
     const { id, text, image, createdAt, updatedAt, comments, likes, tags, user, userId} = post;
-    const likesUserInfo : TInferSelectUserNoPass[] | undefined = likes?.map(user => user.user);
-    const commentsInfo : TSelectComment[] | undefined = comments?.map(comment => comment.comment);
+    const likesUserInfo : string[] | undefined = likes?.map(user => user.user.id);
+    const commentsInfo : string[] | undefined = comments?.map(comment => comment.comment.id);
 
     const fixedResult = {
-        id, userId, text, image, createdAt, updatedAt,
-        comments : JSON.stringify(commentsInfo), likes : JSON.stringify(likesUserInfo),
-        tags, user : JSON.stringify(user)
+        id, userId, text, image, createdAt, updatedAt, comments : JSON.stringify(commentsInfo), 
+        likes : JSON.stringify(likesUserInfo), tags, user : JSON.stringify(user)
     };
 
     addToHashCache(`post:${post.id}`, fixedResult, 2419200);
