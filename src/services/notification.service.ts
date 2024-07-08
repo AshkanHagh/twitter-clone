@@ -1,4 +1,4 @@
-import type { TErrorHandler, TInferSelectNotification, TNotificationResult, TUserProfile } from '../types/types';
+import type { TErrorHandler, TInferSelectNotification, TNotificationResult, TUserProfile } from '../types/index.type';
 import { deleteListCache, getAllFromHashCache } from '../database/cache/index.cache';
 import { deleteNotifications, findManyNotifications } from '../database/queries/notification.query';
 import { notificationEventEmitter } from '../events/notification.event';

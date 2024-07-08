@@ -7,7 +7,7 @@ import { postEventEmitter } from '../events/post.event';
 import { ResourceNotFoundError } from '../libs/utils';
 import ErrorHandler from '../libs/utils/errorHandler';
 import type { TErrorHandler, TFixedCommentReplies, TFixedPostComment, TInferSelectReplies, TPostCommentWithAuthor, TPostWithRelations, 
-    TRepliesRelations, TSelectComment, TUserProfile } from '../types/types';
+    TRepliesRelations, TSelectComment, TUserProfile } from '../types/index.type';
 import { calculateNumberOfSuggestions } from './post.service';
 
 export const addCommentService = async (postId : string, currentUserId : string, text : string) : Promise<TSelectComment> => {

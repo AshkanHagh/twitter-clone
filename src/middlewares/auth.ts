@@ -3,7 +3,7 @@ import { CatchAsyncError } from './catchAsyncError';
 import type { NextFunction, Request, Response } from 'express';
 import ErrorHandler from '../libs/utils/errorHandler';
 import { AccessTokenInvalidError, LoginRequiredError, RoleForbiddenError } from '../libs/utils';
-import type { TErrorHandler, TInferSelectUser } from '../types/types';
+import type { TErrorHandler, TInferSelectUser } from '../types/index.type';
 import { getAllFromHashCache } from '../database/cache/index.cache';
 
 export const isAuthenticated = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {

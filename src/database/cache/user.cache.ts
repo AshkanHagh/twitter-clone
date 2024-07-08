@@ -1,5 +1,5 @@
 import { addToHashCache, getAllFromHashCache } from './index.cache';
-import type { TCacheIndex, TInferSelectUserNoPass, TInferUpdateUser, TUserProfile } from '../../types/types';
+import type { TCacheIndex, TInferSelectUserNoPass, TInferUpdateUser, TUserProfile } from '../../types/index.type';
 import { regexp } from '../../libs/utils';
 import { redis } from '../redis';
 

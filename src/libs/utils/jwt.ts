@@ -1,5 +1,5 @@
 import jwt, { type JwtPayload } from 'jsonwebtoken';
-import type { TCookieOptions, TInferSelectUser, TInferSelectUserNoPass, TInferSelectUserProfile, TUserWithProfileInfo } from '../../types/types';
+import type { TCookieOptions, TInferSelectUser, TInferSelectUserNoPass, TInferSelectUserProfile, TUserWithProfileInfo } from '../../types/index.type';
 import type { Response } from 'express';
 import { addToHashCache } from '../../database/cache/index.cache';
 import { combineUserProfileWithUser } from '../../services/user.service';

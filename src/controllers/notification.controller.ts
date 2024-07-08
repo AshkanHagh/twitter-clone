@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { CatchAsyncError } from '../middlewares/catchAsyncError';
 import { clearNotificationsService, getNotificationsService } from '../services/notification.service';
-import type { TInferSelectNotification, TNotificationResult } from '../types/types';
+import type { TInferSelectNotification, TNotificationResult } from '../types/index.type';
 
 export const getNotifications = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {

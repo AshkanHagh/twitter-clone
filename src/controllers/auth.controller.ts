@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { CatchAsyncError } from '../middlewares/catchAsyncError';
-import type { TActivationToken, TInferSelectUser, TUserWithProfileInfo } from '../types/types';
+import type { TActivationToken, TInferSelectUser, TUserWithProfileInfo } from '../types/index.type';
 import { loginService, refreshTokenService, registerService, verifyAccountService } from '../services/auth.service';
 import { sendToken } from '../libs/utils';
 import { deleteFromCache } from '../database/cache/index.cache';

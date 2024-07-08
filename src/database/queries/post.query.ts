@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import type { TInferSelectPost, TInferSelectPostLike, TPostWithRelations } from '../../types/types';
+import type { TInferSelectPost, TInferSelectPostLike, TPostWithRelations } from '../../types/index.type';
 import { db } from '../db';
 import { PostLikeTable, PostTable } from '../schema';
 

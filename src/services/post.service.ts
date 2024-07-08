@@ -1,4 +1,4 @@
-import type { TPostAssignments, TErrorHandler, TUserProfile, TPostWithRelations, TInferSelectPostLike, TLikesArray, TInferSelectPost, TInferSelectUserNoPass, TUserId, TFollowersPostRelations, TFollowingsPost, TInferSelectTag, TModifiedFollowingsPost } from '../types/types';
+import type { TPostAssignments, TErrorHandler, TUserProfile, TPostWithRelations, TInferSelectPostLike, TLikesArray, TInferSelectPost, TInferSelectUserNoPass, TUserId, TFollowersPostRelations, TFollowingsPost, TInferSelectTag, TModifiedFollowingsPost } from '../types/index.type';
 import { scanTheCache, scanPostCache, findManyUsersCache } from '../database/cache/post.cache';
 import { getAllFromHashCache, getListScore } from '../database/cache/index.cache'
 import { findFirstLike, findFirstPostWithPostId, findFirstPostWithUserId, findManyPostByUserId, findSuggestedPosts, insertPost, 

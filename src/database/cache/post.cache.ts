@@ -1,4 +1,4 @@
-import type { TPostWithRelations } from '../../types/types';
+import type { TPostWithRelations } from '../../types/index.type';
 import { redis } from '../redis';
 import { getAllFromHashCache, getHashWithIndexCache, getListScore, removeScoreCache } from './index.cache';
 

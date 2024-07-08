@@ -5,7 +5,7 @@ import { UserTable } from './schema';
 import bcrypt from 'bcrypt';
 import { insertPost } from './queries/post.query';
 import { postEventEmitter } from '../events/post.event';
-import type { TErrorHandler } from '../types/types';
+import type { TErrorHandler } from '../types/index.type';
 
 const pool = postgres(process.env.DATABASE_URL as string);
 const db = drizzle(pool);

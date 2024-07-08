@@ -1,4 +1,4 @@
-import type { TErrorHandler, TInferSelectUser, TInferSelectUserNoPass, TUserWithProfileInfo, TVerifyActivationToken } from '../types/types';
+import type { TErrorHandler, TInferSelectUser, TInferSelectUserNoPass, TUserWithProfileInfo, TVerifyActivationToken } from '../types/index.type';
 import { getAllFromHashCache } from '../database/cache/index.cache';
 import { findFirstUser, insertUserAuthInfo } from '../database/queries/user.query';
 import emailEventEmitter from '../events/email.event';

@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import type { TInferSelectReplies, TPostCommentWithAuthor, TSelectComment } from '../../types/types';
+import type { TInferSelectReplies, TPostCommentWithAuthor, TSelectComment } from '../../types/index.type';
 import { db } from '../db';
 import { CommentTable, PostCommentTable, RepliesTable } from '../schema';
 import { ForbiddenError, ResourceNotFoundError } from '../../libs/utils';

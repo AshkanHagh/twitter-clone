@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { CatchAsyncError } from '../middlewares/catchAsyncError';
-import type { TFixedPostComment, TInferSelectReplies, TSelectComment } from '../types/types';
+import type { TFixedPostComment, TInferSelectReplies, TSelectComment } from '../types/index.type';
 import { addCommentService, addReplayService, commentRepliesService, deleteCommentService, deleteReplayService, editCommentService, editReplayService, postCommentsService } from '../services/comment.service';
 
 export const addComment = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {

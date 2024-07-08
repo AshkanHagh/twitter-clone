@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { addHashListCache, addToHashCache } from '../database/cache/index.cache';
-import type { TInferSelectUserProfile, TUserWithProfileInfo, TUserWithRelations } from '../types/types';
+import type { TInferSelectUserProfile, TUserWithProfileInfo, TUserWithRelations } from '../types/index.type';
 import { updateUserCache } from '../database/cache/user.cache';
 import { getFollowings_Of_followings, getTopFollowedUsers, getTopLikedPostsCreators } from '../services/user.service';
 

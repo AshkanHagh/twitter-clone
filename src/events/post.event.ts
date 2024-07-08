@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { deleteFirstPost, deleteLikePost, findFirstPostWithPostId, findManyPosts, insertLikePost } from '../database/queries/post.query';
 import { addToHashCache, addToListWithScore, deleteFromCache, getListScore, removeScoreCache } from '../database/cache/index.cache';
-import type { TSelectComment, TInferSelectUserNoPass, TPostWithRelations } from '../types/types';
+import type { TSelectComment, TInferSelectUserNoPass, TPostWithRelations } from '../types/index.type';
 import { removeIndexFromMultipleListCache } from '../database/cache/post.cache';
 import { insertNotification } from '../database/queries/notification.query';
 import { arrayToKeyValuePairs, calculateNumberOfSuggestions } from '../services/post.service';

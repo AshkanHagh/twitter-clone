@@ -1,5 +1,5 @@
 import type { TErrorHandler, TFollowersRelations, TInferSelectUserNoPass, TInferSelectUserProfile, TInferUpdateUser, TUpdateProfileInfo, 
-    TUserProfile, TUserWithProfileInfo, TUserWithRelations } from '../types/types';
+    TUserProfile, TUserWithProfileInfo, TUserWithRelations } from '../types/index.type';
 import { removeFromHashListCache, getAllFromHashCache, getHashWithIndexCache, addHashListCache } from '../database/cache/index.cache';
 import { searchByUsernameInCache, searchInCache, updateUserCache } from '../database/cache/user.cache';
 import { deleteFollow, findFirstFollow, findFirstProfile, findFirstUser, findManyFollowingsId, findManyFollowings, findManyUsers, findManyUsersById, insertFollow, insertProfileInfo, searchUserByUsername, updateAccount, updateProfileInfo } from '../database/queries/user.query';

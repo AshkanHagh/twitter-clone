@@ -1,6 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import type { TFollowersPostRelations, TFollowersRelations, TInferSelectFollowers, TInferSelectUserProfile, TInferUpdateUser, TUpdateProfileInfo, 
-    TUserId, TUserWithProfileInfo, TUserWithRelations} from '../../types/types';
+    TUserId, TUserWithProfileInfo, TUserWithRelations} from '../../types/index.type';
 import { db } from '../db';
 import { FollowersTable, UserProfileTable, UserTable } from '../schema';
 import { escapeRegExp } from '../../libs/utils';
