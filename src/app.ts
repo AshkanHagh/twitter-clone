@@ -22,8 +22,8 @@ app.use(helmet({crossOriginResourcePolicy : {policy : 'cross-origin'}}));
 app.get('/', (req : Request, res : Response) => res.status(200).json({success : true, message : 'Welcome'}));
 
 app.use('/api/v2/auth', authRouter);
-app.use('/api/v2/user', userRouter);
-app.use('/api/v2/post', postRouter);
+app.use('/api/v2/users', userRouter);
+app.use('/api/v2/posts', postRouter);
 
 app.all('*', (req : Request, res : Response, next : NextFunction) => {
     next(new RouteNowFoundError(`Route : ${req.originalUrl} not found`));

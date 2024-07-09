@@ -3,9 +3,16 @@ import { isAuthenticated } from '../middlewares/auth';
 import { createPost, editPost, suggestedPosts, likePost, deletePost } from '../controllers/post.controller';
 import validationMiddleware from '../middlewares/validation.body';
 import { createPostBody, updatePostBody } from '../validations/Joi';
-import { addComment, addReplay, commentReplies, deleteComment, deleteReplay, editComment, editReplay, postComments } from '../controllers/comment.controller';
+import { addComment, addReplay, commentReplies, deleteComment, deleteReplay, editComment, editReplay, 
+postComments } from '../controllers/comment.controller';
+import { savedPosts, savePost } from '../controllers/save-post.controller';
 
 const router = Router();
+
+// save post
+router.post('/save/:postId', isAuthenticated, savePost);
+
+router.get('/save', isAuthenticated, savedPosts);
 
 // replies
 router.post('/comment/replay/:commentId', isAuthenticated, addReplay);

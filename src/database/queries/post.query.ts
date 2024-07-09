@@ -2,7 +2,9 @@ import { and, eq } from 'drizzle-orm';
 import type { TInferSelectPost, TInferSelectPostLike, TPostWithRelations } from '../../types/index.type';
 import { db } from '../db';
 import { PostLikeTable, PostTable } from '../schema';
+import { ResourceNotFoundError } from '../../libs/utils';
 
+// use transactions to send only one query request to db instead of more then 2 request
 export const insertPost = async (currentUserId : string, text : string, image : string | undefined) : Promise<TInferSelectPost> => {
     const createdPost = await db.insert(PostTable).values({userId : currentUserId, text, image : image || undefined}).returning();
     return createdPost[0] as TInferSelectPost;
@@ -73,6 +75,11 @@ export const findManyPostByUserId = async (userId : string) : Promise<TPostWithR
         // limit : 5,
         orderBy : (table, funcs) => funcs.asc(table.createdAt)
     }) as TPostWithRelations[];
+}
+
+export const isPostExists = async (postId : string) => {
+    const post = await db.query.PostTable.findFirst({where : (table, funcs) => funcs.eq(table.id, postId), columns : {id : true}});
+    if(!post) throw new ResourceNotFoundError();
 }
 
 export const insertLikePost = async (userId : string, postId : string) : Promise<void> => {

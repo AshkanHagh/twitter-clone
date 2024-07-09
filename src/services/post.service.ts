@@ -217,7 +217,7 @@ const getCurrentUserLatestPost = async (currentUserId : string) : Promise<TPostW
     return fixedResult;
 }
 
-const parseAndFixResult = (post : TPostWithRelations) : TPostWithRelations => {
+export const parseAndFixResult = (post : TPostWithRelations) : TPostWithRelations => {
     const { id, text, image, userId, createdAt, updatedAt, user, comments, likes, tags } = post;
     return {
         id, text, image, userId, createdAt, updatedAt, user : typeof user === 'string' ? JSON.parse(user) : user, 

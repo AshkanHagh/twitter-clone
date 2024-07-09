@@ -6,6 +6,7 @@ import { ForbiddenError, ResourceNotFoundError } from '../../libs/utils';
 import { createTransaction } from '../../libs/utils/createTransaction';
 import { getHashWithIndexCache } from '../cache/index.cache';
 
+// use transactions to send only one query request to db instead of more then 2 request
 export const insertComment = async (authorId : string, postId : string, text : string) : Promise<TSelectComment> => {
     const newComment = await db.transaction(async (trx) => {
         const [newComment] = await trx.insert(CommentTable).values({authorId, text}).returning();

@@ -58,3 +58,19 @@ export const removeScoreCache = async (listKey : string, listIndex : string) => 
 export const getListScore = async (listKey : string) : Promise<string[]> => {
     return await redis.zrevrange(listKey, 0, -1, 'WITHSCORES');
 }
+
+export const addSetList = async (setKey : string, setValue : string) => {
+    await redis.sadd(setKey, setValue);
+}
+
+export const removeFromSetList = async (setKey : string, setIndex : string) => {
+    await redis.srem(setKey, setIndex);
+}
+
+export const getFromSetListCache = async (setKet : string, setIndex : string) => {
+    return await redis.sismember(setKet, setIndex);
+}
+
+export const getAllSetListCache = async (setKet : string) => {
+    return await redis.smembers(setKet);
+}
