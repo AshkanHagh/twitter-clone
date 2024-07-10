@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import type { TInferSelectPost, TInferSelectPostLike, TPostWithRelations } from '../../types/index.type';
 import { db } from '../db';
 import { PostLikeTable, PostTable } from '../schema';
-import { ResourceNotFoundError } from '../../libs/utils';
+import { ForbiddenError, ResourceNotFoundError } from '../../libs/utils';
 
 // use transactions to send only one query request to db instead of more then 2 request
 export const insertPost = async (currentUserId : string, text : string, image : string | undefined) : Promise<TInferSelectPost> => {
@@ -107,4 +107,11 @@ export const findManyLikes = async (currentUserId : string) : Promise<TInferSele
     return await db.query.PostLikeTable.findMany({
         where : (table, funcs) => funcs.eq(table.userId, currentUserId)
     })
+}
+
+export const checkPostAuthor = async (currentUserId : string, postId : string) => {
+    const desiredPost : {userId : string} | undefined = await db.query.PostTable.findFirst({
+        where : (table, funcs) => funcs.eq(table.id, postId), columns : {userId : true}
+    });
+    if(desiredPost?.userId !== currentUserId) throw new ForbiddenError();
 }

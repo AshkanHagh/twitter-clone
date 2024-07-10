@@ -1,5 +1,5 @@
 {
-  "id": "273b0faa-a44a-4bd1-9f70-a60c2686a388",
+  "id": "99887a9c-58c7-4317-ab0f-b100ced2ad30",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -92,6 +92,13 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -431,11 +438,18 @@
       "name": "post_tags",
       "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
         "postId": {
           "name": "postId",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "tag": {
           "name": "tag",
@@ -444,7 +458,23 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "postIdIndex": {
+          "name": "postIdIndex",
+          "columns": [
+            {
+              "expression": "postId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "post_tags_postId_posts_id_fk": {
           "name": "post_tags_postId_posts_id_fk",
@@ -460,14 +490,7 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "post_tags_postId_pk": {
-          "name": "post_tags_postId_pk",
-          "columns": [
-            "postId"
-          ]
-        }
-      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
     "public.replies": {

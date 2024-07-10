@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1720159155271,
-      "tag": "0000_perpetual_surge",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1720346936676,
-      "tag": "0001_even_manta",
+      "when": 1720617189740,
+      "tag": "0000_clumsy_silver_fox",
       "breakpoints": true
     }
   ]

@@ -1,1 +1,0 @@
-ALTER TABLE "followers" ADD COLUMN "createdAt" timestamp DEFAULT now();

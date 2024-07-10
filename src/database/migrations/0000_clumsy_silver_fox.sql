@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS "comments" (
 CREATE TABLE IF NOT EXISTS "followers" (
 	"followerId" uuid NOT NULL,
 	"followedId" uuid NOT NULL,
+	"createdAt" timestamp DEFAULT now(),
 	CONSTRAINT "followers_followerId_followedId_pk" PRIMARY KEY("followerId","followedId")
 );
 --> statement-breakpoint
@@ -62,9 +63,9 @@ CREATE TABLE IF NOT EXISTS "posts" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "post_tags" (
-	"postId" uuid NOT NULL,
-	"tag" varchar(255) NOT NULL,
-	CONSTRAINT "post_tags_postId_pk" PRIMARY KEY("postId")
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"postId" uuid,
+	"tag" varchar(255) NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "replies" (
@@ -201,6 +202,7 @@ END $$;
 CREATE INDEX IF NOT EXISTS "authorIndex_commentTable" ON "comments" USING btree ("authorId");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "fromIndex_notificationTable" ON "notifications" USING btree ("from");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "userIndex_postTable" ON "posts" USING btree ("userId");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "postIdIndex" ON "post_tags" USING btree ("postId");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "commentIndex_repliesTable" ON "replies" USING btree ("commentId");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "authorIndex_repliesTable" ON "replies" USING btree ("authorId");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "postIndex_saveTable" ON "save_posts" USING btree ("postId");--> statement-breakpoint

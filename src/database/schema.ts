@@ -86,10 +86,11 @@ export const PostLikeTable = pgTable('post_likes', {
 });
 
 export const PostTagTable = pgTable('post_tags', {
-    postId : uuid('postId').references(() => PostTable.id, {onDelete : 'cascade'}).notNull(),
+    id : uuid('id').primaryKey().defaultRandom(),
+    postId : uuid('postId').references(() => PostTable.id, {onDelete : 'cascade'}),
     tag : varchar('tag', {length : 255}).notNull()
 }, table => {
-    return {pk : primaryKey({columns : [table.postId]})}
+    return {postIdIndex : index('postIdIndex').on(table.postId)}
 });
 
 export const NotificationType = pgEnum('type', ['like', 'follow']);
@@ -161,7 +162,7 @@ export const PostTableRelations = relations(PostTable, ({one, many}) => {
         }),
         comments : many(PostCommentTable),
         likes : many(PostLikeTable),
-        tags : one(PostTagTable)
+        tags : many(PostTagTable, {relationName : 'Post_tag'})
     }
 });
 

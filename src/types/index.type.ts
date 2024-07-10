@@ -96,7 +96,7 @@ export type TPostWithRelations = {
             createdAt : TInferSelectUser['createdAt']; updatedAt : TInferSelectUser['updatedAt']; id : TInferSelectUser['id']
         }; 
     }[];
-    tags? : { tag : TInferSelectTag['tag'] }
+    tags? : { tag : TInferSelectTag['tag'] }[]
 }
 
 export type TLikesArray = {
