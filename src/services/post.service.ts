@@ -236,7 +236,7 @@ const fixedResult = (posts : TFollowingsPost[]) : TModifiedFollowingsPost[] => {
         }
     });
 }
-// 1. Add the following that i have liked their post must and must recent following suggest their post only 
+
 export const getFollowingPosts = async (currentUserId : string) : Promise<TModifiedFollowingsPost[]> => {
     const followingPostMap : Map<string, TFollowingsPost> = new Map<string, TFollowingsPost>();
 

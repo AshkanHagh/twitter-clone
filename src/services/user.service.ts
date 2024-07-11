@@ -75,7 +75,7 @@ export const searchUserService = async (username : string, currentUserId : strin
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 };
-// clean this function do some event
+
 export const followUserService = async (currentUser : TInferSelectUserNoPass, userToFollowId : string) : Promise<string> => {
     try {
         let userToFollowProfile : TUserWithProfileInfo | undefined;

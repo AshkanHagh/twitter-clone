@@ -144,7 +144,7 @@ export const deleteReplayService = async (currentUserId : string, commentId : st
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 }
-// 1. Add pagination to cache replay
+
 export const commentRepliesService = async (commentId : string, startIndex : number, limit : number) : Promise<TFixedCommentReplies[]> => {
     try {
         let commentReplies : TRepliesRelations[] | TFixedCommentReplies[];
