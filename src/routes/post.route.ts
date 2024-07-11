@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { isAuthenticated } from '../middlewares/auth';
 import { createPost, editPost, suggestedPosts, likePost, deletePost, followedUsersPosts } from '../controllers/post.controller';
 import validationMiddleware from '../middlewares/validation.body';
-import { createPostBody, updatePostBody } from '../validations/Joi';
+import { commentBody, createPostBody, tagBody } from '../validations/Joi';
 import { addComment, addReplay, commentReplies, deleteComment, deleteReplay, editComment, editReplay, 
 postComments } from '../controllers/comment.controller';
 import { savedPosts, savePost } from '../controllers/save-post.controller';
@@ -11,7 +11,7 @@ import { addTagToPost } from '../controllers/tags.controller';
 const router = Router();
 
 // tags
-router.post('/tags/:postId', isAuthenticated, addTagToPost);
+router.post('/tags/:postId', [validationMiddleware(tagBody), isAuthenticated], addTagToPost);
 
 // save post
 router.post('/save/:postId', isAuthenticated, savePost);
@@ -19,18 +19,18 @@ router.post('/save/:postId', isAuthenticated, savePost);
 router.get('/save', isAuthenticated, savedPosts);
 
 // replies
-router.post('/comment/replay/:commentId', isAuthenticated, addReplay);
+router.post('/comment/replay/:commentId', [validationMiddleware(commentBody), isAuthenticated], addReplay);
 
-router.patch('/comment/replay/:commentId/:replayId', isAuthenticated, editReplay);
+router.patch('/comment/replay/:commentId/:replayId', [validationMiddleware(commentBody), isAuthenticated], editReplay);
 
 router.delete('/comment/replay/:commentId/:replayId', isAuthenticated, deleteReplay);
 
 router.get('/comment/replay/:commentId', isAuthenticated, commentReplies);
 
 // comments
-router.post('/comment/:postId', isAuthenticated, addComment);
+router.post('/comment/:postId', [validationMiddleware(commentBody), isAuthenticated], addComment);
 
-router.patch('/comment/:commentId/:postId', isAuthenticated, editComment);
+router.patch('/comment/:commentId/:postId', [validationMiddleware(commentBody), isAuthenticated], editComment);
 
 router.delete('/comment/:commentId/:postId', isAuthenticated, deleteComment);
 
@@ -43,7 +43,7 @@ router.get('/', isAuthenticated, suggestedPosts);
 
 router.put('/like/:id', isAuthenticated, likePost);
 
-router.patch('/:id', [isAuthenticated, validationMiddleware(updatePostBody)], editPost);
+router.patch('/:id', [isAuthenticated, validationMiddleware(createPostBody)], editPost);
 
 router.delete('/:id', isAuthenticated, deletePost);
 

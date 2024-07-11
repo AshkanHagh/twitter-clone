@@ -4,7 +4,6 @@ import { LoginBody, RegisterBody, VerifyAccountBody } from '../validations/Joi';
 import { login, logout, refreshToken, register, verifyAccount } from '../controllers/auth.controller';
 import { RouteNowFoundError } from '../libs/utils';
 import { isAuthenticated } from '../middlewares/auth';
-// import { loginRateLimit, requestVerificationCodeRateLimit } from '../middlewares/rate-limit';
 
 const router = Router();
 

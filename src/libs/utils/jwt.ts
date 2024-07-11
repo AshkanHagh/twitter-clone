@@ -26,7 +26,7 @@ export const sendToken = (user : TUserWithProfileInfo, res : Response, tokenFor 
     const filteredProfile = Object.fromEntries(
         Object.entries(user).filter(entry => entry[1] !== null)
     );
-    const userInfo = combineUserProfileWithUser(filteredProfile.profile as TInferSelectUserProfile || null, 
+    const userInfo = combineUserProfileWithUser(filteredProfile['profile'] as TInferSelectUserProfile || null, 
         filteredProfile as TInferSelectUserNoPass
     );
     addToHashCache(`user:${user.id}`, userInfo, 604800);

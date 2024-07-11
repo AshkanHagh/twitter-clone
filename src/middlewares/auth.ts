@@ -3,18 +3,21 @@ import { CatchAsyncError } from './catchAsyncError';
 import type { NextFunction, Request, Response } from 'express';
 import ErrorHandler from '../libs/utils/errorHandler';
 import { AccessTokenInvalidError, LoginRequiredError, RoleForbiddenError } from '../libs/utils';
-import type { TErrorHandler, TInferSelectUser } from '../types/index.type';
+import type { TErrorHandler, TInferSelectUserNoPass } from '../types/index.type';
 import { getAllFromHashCache } from '../database/cache/index.cache';
 
 export const isAuthenticated = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
-        const accessToken : string = req.cookies['access_token'];
-        if(!accessToken) return next(new LoginRequiredError());
+        const authHeader : string | undefined = req.headers.authorization;
+        if(!authHeader || !authHeader.startsWith('Bearer ')) return next(new LoginRequiredError());
 
-        const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN as string) as JwtPayload & TInferSelectUser;
+        const accessToken : string | undefined = authHeader.split(' ')[1];
+        if(!accessToken) return next(new AccessTokenInvalidError());
+
+        const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN as string) as JwtPayload & TInferSelectUserNoPass;
         if(!decoded) return next(new AccessTokenInvalidError());
 
-        const user : Omit<TInferSelectUser, 'password'> = await getAllFromHashCache(`user:${decoded.id}`);
+        const user : TInferSelectUserNoPass = await getAllFromHashCache(`user:${decoded.id}`);
         if(Object.keys(user).length <= 0) return next(new LoginRequiredError());
 
         req.user = user;

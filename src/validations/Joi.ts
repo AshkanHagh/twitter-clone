@@ -50,7 +50,10 @@ export const createPostBody = Joi.object({
     image : Joi.string().trim()
 });
 
-export const updatePostBody = Joi.object({
-    text : Joi.string().trim().max(255),
-    image : Joi.string().trim()
+export const commentBody = Joi.object({
+    text : Joi.string().trim().max(255).required(),
+});
+
+export const tagBody = Joi.object({
+    text : Joi.array<string>().max(255).required()
 });
