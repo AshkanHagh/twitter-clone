@@ -1,0 +1,1 @@
+ALTER TABLE "followers" ADD COLUMN "updatedAt" timestamp DEFAULT now();
