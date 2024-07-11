@@ -134,23 +134,37 @@ export type TFollowersPostRelations = {
             id : string; userId : string; text : string; image : string | null; createdAt : Date | null; updatedAt : Date | null
             comments : TInferSelectPostComment[]
             likes : TInferSelectPostLike[]
-            tags : TInferSelectTag | null
+            tags : TInferSelectTag[] | null
             user : TInferSelectUserNoPass;
         }[];
     };
+};
+
+export type TFollowingProfile = {
+    follower : TUserProfile
+};
+
+export type TFollowerProfile = {
+    followed : TUserProfile
+};
+
+export type TModifiedFollowingProfile = {
+    id : TInferSelectUser['id']; username : TInferSelectUser['username']; email : TInferSelectUser['email']; role : TInferSelectUser['role']; 
+    createdAt : TInferSelectUser['createdAt']; updatedAt : TInferSelectUser['updatedAt'];
+    profilePic? : TInferSelectUserProfile['profilePic'];
 };
 
 export type TFollowingsPost = {
     id : TInferSelectPost['id']; userId : TInferSelectPost['userId']; text : TInferSelectPost['text']; image : TInferSelectPost['image']; 
     createdAt : TInferSelectPost['createdAt']; updatedAt : TInferSelectPost['updatedAt']
     comments : TInferSelectPostComment[];
-    likes : TInferSelectPostLike[]; tags : TInferSelectTag | null; user : TInferSelectUserNoPass; 
+    likes : TInferSelectPostLike[]; tags : Pick<TInferSelectTag, 'tag'>[] | null; user : TInferSelectUserNoPass; 
 }
 
 export type TModifiedFollowingsPost = {
     id : TInferSelectPost['id']; userId : TInferSelectPost['userId']; text : TInferSelectPost['text']; image : TInferSelectPost['image']; 
     createdAt : TInferSelectPost['createdAt']; updatedAt : TInferSelectPost['updatedAt']; user : TInferSelectUserNoPass; 
-    comments : number; likes : number; tags : TInferSelectTag | string; 
+    comments : number; likes : number; tags : Pick<TInferSelectTag, 'tag'>[] | null; 
 }
 
 export type TPostCommentWithAuthor = {

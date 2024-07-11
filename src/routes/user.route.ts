@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { isAuthenticated } from '../middlewares/auth';
-import { followUser, getUserProfile, searchUser, suggestionForFollow, updateAccountInfo, updateAccountPassword, updateProfileInfo } from '../controllers/user.controller';
+import { followers, followings, followUser, getUserProfile, searchUser, suggestionForFollow, updateAccountInfo, updateAccountPassword, 
+    updateProfileInfo } from '../controllers/user.controller';
 import validationMiddleware from '../middlewares/validation.body';
 import { insertAccountBody, insertPasswordBody, insertProfileBody } from '../validations/Joi';
 import { clearNotifications, getNotifications } from '../controllers/notification.controller';
@@ -24,5 +25,9 @@ router.get('/notifications', isAuthenticated, getNotifications);
 router.delete('/notifications', isAuthenticated, clearNotifications);
 
 router.get('/follow/suggestions', isAuthenticated, suggestionForFollow);
+
+router.get('/followings', isAuthenticated, followings);
+
+router.get('/followers', isAuthenticated, followers);
 
 export default router;

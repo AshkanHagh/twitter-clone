@@ -31,7 +31,7 @@ export const FollowersTable = pgTable('followers', {
     followerId : uuid('followerId').references(() => UserTable.id, {onDelete : 'cascade'}).notNull(),
     followedId : uuid('followedId').references(() => UserTable.id, {onDelete : 'cascade'}).notNull(),
     createdAt : timestamp('createdAt').defaultNow(),
-    updatedAt : timestamp('createdAt').defaultNow().$onUpdate(() => new Date())
+    updatedAt : timestamp('updatedAt').defaultNow().$onUpdate(() => new Date())
 }, table => {
     return {pk : primaryKey({columns : [table.followerId, table.followedId]})}
 });

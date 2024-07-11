@@ -1,12 +1,11 @@
-import type { TErrorHandler, TFollowersRelations, TInferSelectUserNoPass, TInferSelectUserProfile, TInferUpdateUser, TUpdateProfileInfo, 
-    TUserProfile, TUserWithProfileInfo, TUserWithRelations } from '../types/index.type';
-import { removeFromHashListCache, getAllFromHashCache, getHashWithIndexCache, addHashListCache } from '../database/cache/index.cache';
+import type { TErrorHandler, TFollowerProfile, TFollowersRelations, TFollowingProfile, TInferSelectUserNoPass, TInferSelectUserProfile, TInferUpdateUser, TModifiedFollowingProfile, TUpdateProfileInfo, TUserProfile, TUserWithProfileInfo, TUserWithRelations } from '../types/index.type';
+import { getAllFromHashCache, getHashWithIndexCache } from '../database/cache/index.cache';
 import { searchByUsernameInCache, searchInCache, updateUserCache } from '../database/cache/user.cache';
-import { deleteFollow, findFirstFollow, findFirstProfile, findFirstUser, findManyFollowingsId, findManyFollowings, findManyUsers, findManyUsersById, insertFollow, insertProfileInfo, searchUserByUsername, updateAccount, updateProfileInfo } from '../database/queries/user.query';
+import { findFirstFollow, findFirstProfile, findFirstUser, findManyFollowingsId, findManyFollowings, findManyUsers, findManyUsersById, insertProfileInfo, searchUserByUsername, updateAccount, updateProfileInfo, findManyFollowingsWithUser, 
+    findManyFollowersWithUser} from '../database/queries/user.query';
 import emailEventEmitter from '../events/email.event';
-import { notificationEventEmitter } from '../events/notification.event';
 import { userEventEmitter } from '../events/user.event';
-import { EmailOrUsernameExistsError, PasswordDoesNotMatch, PasswordValidationError, ResourceNotFoundError, 
+import { BadRequestError, EmailOrUsernameExistsError, PasswordDoesNotMatch, PasswordValidationError, ResourceNotFoundError, 
     comparePassword, hashPassword } from '../libs/utils';
 import ErrorHandler from '../libs/utils/errorHandler';
 import { getListScore } from '../database/cache/index.cache';
@@ -38,7 +37,7 @@ export const updateProfileInfoService = async (fullName : string, bio : string, 
         userEventEmitter.emit('updateProfile', currentUser.id, combinedUserProfile, updatedProfile);
         return combinedUserProfile ;
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -55,7 +54,7 @@ export const combineUserProfileWithUser = (profile : TInferSelectUserProfile | n
     return {id, username, email, role, createdAt, updatedAt}
 };
 
-export const searchUserService = async (username : string, currentUserId : string) => {
+export const searchUserService = async (username : string, currentUserId : string, startIndex : number, limit : number) => {
     try {
         const usernameRegExp : RegExp = new RegExp(username, 'i');
 
@@ -65,18 +64,18 @@ export const searchUserService = async (username : string, currentUserId : strin
         }));
 
         if(matchedUsersInCache.length == 0) {
-            const searchedUsersFromDB : TUserWithProfileInfo[] = await searchUserByUsername(username);
+            const searchedUsersFromDB : TUserWithProfileInfo[] = await searchUserByUsername(username, startIndex || 0, limit || 15);
             const filteredUsersFromDB : TUserWithProfileInfo[] = searchedUsersFromDB.filter(user => user.id !== currentUserId);
             return filteredUsersFromDB;
         }
-        return cachedUsers.filter(user => user.id !== currentUserId);
+        return cachedUsers.filter(user => user.id !== currentUserId).splice(startIndex || 0, limit || 15);
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 };
-
+// clean this function do some event
 export const followUserService = async (currentUser : TInferSelectUserNoPass, userToFollowId : string) : Promise<string> => {
     try {
         let userToFollowProfile : TUserWithProfileInfo | undefined;
@@ -88,28 +87,19 @@ export const followUserService = async (currentUser : TInferSelectUserNoPass, us
         userToFollowProfile = followedUserProfileFromCache;
         isAlreadyFollowing = alreadyFollowingFromCache as TUserWithProfileInfo;
 
-        if(Object.keys(followedUserProfileFromCache).length <= 0) {
-            userToFollowProfile = await findFirstUser(undefined, undefined, userToFollowId);
-        }
-        if(!alreadyFollowingFromCache) {
-            isAlreadyFollowing = await findFirstFollow(currentUser.id, userToFollowId);
-        }
+        if(Object.keys(followedUserProfileFromCache).length <= 0) userToFollowProfile = await findFirstUser(undefined, undefined, userToFollowId);
+        if(!alreadyFollowingFromCache) isAlreadyFollowing = await findFirstFollow(currentUser.id, userToFollowId);
+        if(currentUser.id == userToFollowId) throw new BadRequestError();
+        const {password, ...others} = userToFollowProfile as TUserWithProfileInfo;
 
         if(!isAlreadyFollowing) {
-            await Promise.all([insertFollow(currentUser.id, userToFollowId),
-                addHashListCache(`followings:${currentUser.id}`, userToFollowId, userToFollowProfile, 604800),
-                addHashListCache(`followers:${userToFollowId}`, currentUser.id, currentUser, 604800)
-            ]);
-            notificationEventEmitter.emit('follow', currentUser.id, userToFollowId);
+            userEventEmitter.emit('follow', userToFollowId, others, currentUser)
             return 'User followed successfully';
         }
-        await Promise.all([deleteFollow(currentUser.id, userToFollowId),
-            removeFromHashListCache(`followings:${currentUser.id}`, userToFollowId), 
-            removeFromHashListCache(`followers:${userToFollowId}`, currentUser.id)
-        ]);
+        userEventEmitter.emit('unfollow', currentUser, userToFollowId);
         return 'User unfollowed successfully';
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -123,7 +113,7 @@ export const getUserProfileService = async (currentUser : TUserProfile) => {
             followingCount : Object.keys(followingFromCache).length
         };
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -144,7 +134,7 @@ export const updateAccountInfoService = async (currentUser : TUserProfile, email
         updateUserCache(updatedUser || currentUser);
         return updatedUser;
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -165,7 +155,7 @@ export const updateAccountPasswordService = async (currentUserId : string, newPa
 
         return 'Password has been updated';
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -192,9 +182,8 @@ export const suggestionForFollowService = async (currentUserId : string) => {
 
         return Array.from(suggestMap.values());
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
-        console.log(error);
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 };
@@ -226,9 +215,6 @@ export const getFollowings_Of_followings = async (currentUserId : string) => {
     return suggestedUsers;
 };
 
-// 1. add suggestedUsers to cache name suggestion_follow:${userId}
-// 2. update All suggestion function to update cache
-// DONE optimize the suggestion functions with cache
 export const getTopFollowedUsers = async (currentUserId : string) => {
     const users : TUserWithRelations[] = await findManyUsers(currentUserId, 0);
     users.sort((a, b) => b.followers!.length - a.followers!.length);
@@ -241,3 +227,43 @@ export const getTopFollowedUsers = async (currentUserId : string) => {
     userEventEmitter.emit('addSuggestedUsersToCache', fixedResult, currentUserId);
     return fixedResult;
 };
+
+export const followingsService = async (currentUserId : string, offset : number, limit : number) : 
+Promise<TModifiedFollowingProfile[] | undefined> => {
+    try {
+        const followingsCache : Record<string, string> = await getAllFromHashCache(`followings:${currentUserId}`);
+        const followings : TModifiedFollowingProfile[] = Object.values(followingsCache).map(following => JSON.parse(following))
+        .splice(offset || 0, limit || 15);
+
+        if(Object.keys(followingsCache).length == 0) {
+            const followings : TFollowingProfile[] = await findManyFollowingsWithUser(currentUserId, limit || 15, offset || 0);
+            return followings.map(following => following.follower);
+        }
+
+        return followings;
+        
+    } catch (err : unknown) {
+        const error = err as TErrorHandler;
+        throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
+    }
+}
+
+export const followersService = async (currentUserId : string, offset : number, limit : number) : 
+Promise<TModifiedFollowingProfile[] | undefined> => {
+    try {
+        const followersCache : Record<string, string> = await getAllFromHashCache(`followers:${currentUserId}`);
+        const followers : TModifiedFollowingProfile[] = Object.values(followersCache).map(follower => JSON.parse(follower))
+        .splice(offset || 0, limit || 15);
+
+        if(Object.keys(followersCache).length == 0) {
+            const followers : TFollowerProfile[] = await findManyFollowersWithUser(currentUserId, limit || 15, offset || 0);
+            return followers.map(followers => followers.followed);
+        }
+
+        return followers;
+        
+    } catch (err : unknown) {
+        const error = err as TErrorHandler;
+        throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
+    }
+}

@@ -66,6 +66,3 @@ export const refreshToken = CatchAsyncError(async (req : Request, res : Response
         return next(error);
     }
 });
-
-// 1. Add Google|Github|Microsoft auth
-// 2. Add reset password

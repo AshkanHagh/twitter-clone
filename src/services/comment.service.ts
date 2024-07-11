@@ -30,7 +30,7 @@ export const addCommentService = async (postId : string, currentUserId : string,
         postEventEmitter.emit('post_cache', postId)
         return newComment;
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -44,7 +44,7 @@ export const editCommentService = async (commentId : string, postId : string, cu
 
         return updatedComment;
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -64,7 +64,7 @@ export const deleteCommentService = async (commentId : string, postId : string, 
         postEventEmitter.emit('post_cache', postId);
         return 'Comment has been deleted successfully';
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -102,7 +102,7 @@ export const postCommentsService = async (postId : string, limit : number | unde
         postEventEmitter.emit('post_cache', postId)
         return postComments.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -114,7 +114,7 @@ export const addReplayService = async (commentId : string, currentUserId : strin
         addHashListCache(`comment_replies:${commentId}`, newReplay.id, newReplay, 2419200);
         return newReplay;
 
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -127,7 +127,7 @@ Promise<TInferSelectReplies> => {
         addHashListCache(`comment_replies:${updatedReplay.commentId}`, replayId, updatedReplay, 2419200);
         return updatedReplay;
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -139,7 +139,7 @@ export const deleteReplayService = async (currentUserId : string, commentId : st
         removeFromHashListCache(`comment_replies:${commentId}`, replayId);
         return 'Replay Has been deleted successfully';
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -173,7 +173,7 @@ export const commentRepliesService = async (commentId : string, startIndex : num
         return commentReplies.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
         .splice(startIndex || 0, limit || 10);
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }

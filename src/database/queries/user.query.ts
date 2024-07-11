@@ -1,5 +1,5 @@
 import { and, eq, sql } from 'drizzle-orm';
-import type { TFollowersPostRelations, TFollowersRelations, TInferSelectFollowers, TInferSelectUserProfile, TInferUpdateUser, TUpdateProfileInfo, 
+import type { TFollowerProfile, TFollowersPostRelations, TFollowersRelations, TFollowingProfile, TInferSelectFollowers, TInferSelectUserProfile, TInferUpdateUser, TUpdateProfileInfo, 
     TUserId, TUserWithProfileInfo, TUserWithRelations} from '../../types/index.type';
 import { db } from '../db';
 import { FollowersTable, UserProfileTable, UserTable } from '../schema';
@@ -39,13 +39,13 @@ export const updateProfileInfo = async (values : TUpdateProfileInfo) : Promise<T
     return profileInfo[0] as TInferSelectUserProfile;
 }
 
-export const searchUserByUsername = async (username : string) : Promise<TUserWithProfileInfo[]> => {
+export const searchUserByUsername = async (username : string, offset : number, limit : number) : Promise<TUserWithProfileInfo[]> => {
     const escapedQuery = escapeRegExp(username);
     const regexQuery = `%${escapedQuery}%`;
 
     return await db.query.UserTable.findMany({
         where : (table, funcs) => funcs.ilike(table.username, regexQuery), orderBy : (table, funcs) => funcs.desc(table.username),
-        with : {profile : {columns : {id : false, userId : false}}}
+        with : {profile : {columns : {id : false, userId : false}}}, limit, offset
     });
 }
 
@@ -78,6 +78,22 @@ export const findManyFollowingsId = async (currentUserId : string, limit : numbe
     return await db.query.FollowersTable.findMany({
         where : (table, funcs) => funcs.eq(table.followerId, currentUserId), limit
     });
+}
+
+export const findManyFollowingsWithUser = async (currentUserId : string, limit : number, offset : number) : Promise<TFollowingProfile[]> => {
+    return await db.query.FollowersTable.findMany({
+        where : (table, funcs) => funcs.eq(table.followerId, currentUserId), limit, offset,
+        with : {follower : {columns : {password : false}, with : {profile : {columns : {profilePic : true}}}}}, columns : {},
+        orderBy : (table, funcs) => funcs.desc(table.createdAt)
+    }) as TFollowingProfile[];
+}
+
+export const findManyFollowersWithUser = async (currentUserId : string, limit : number, offset : number) : Promise<TFollowerProfile[]> => {
+    return await db.query.FollowersTable.findMany({
+        where : (table, funcs) => funcs.eq(table.followedId, currentUserId), limit, offset,
+        with : {followed : {columns : {password : false}, with : {profile : {columns : {profilePic : true}}}}}, columns : {},
+        orderBy : (table, funcs) => funcs.desc(table.createdAt)
+    }) as TFollowerProfile[];
 }
 
 export const findManyFollowings = async (currentUserId : string, limit : number) : Promise<TFollowersRelations[]> => {

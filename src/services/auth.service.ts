@@ -17,7 +17,7 @@ export const registerService = async (username : string, email : string, passwor
         emailEventEmitter.emit('registerEmail', email, activationCode);
         return activationToken;
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -34,7 +34,7 @@ export const verifyAccountService = async (activationToken : string, activationC
 
         insertUserAuthInfo(email, username, password);
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -48,7 +48,7 @@ export const loginService = async (email : string | undefined, username : string
         if(!isUserExists || !isPasswordMatch) throw new InvalidEmailOrPasswordError();
         return isUserExists;
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -64,7 +64,7 @@ export const refreshTokenService = async (refreshToken : string) : Promise<TUser
 
         return session;
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }

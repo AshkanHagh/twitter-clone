@@ -54,7 +54,7 @@ export const createPostService = async (currentUser : TInferSelectUserNoPass, te
         postEventEmitter.emit('post_cache', createdPost.id);
         return combinePostCreator(createdPost, currentUser, 'return');
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -105,9 +105,9 @@ export const suggestedPostsService = async (currentUserId : string) : Promise<TP
         let activeUsers : Array<{id : string}>;
 
         const followingPosts : TModifiedFollowingsPost[] = await getFollowingPosts(currentUserId);
-        const likedPostsUsers : Record<string, string> = await fetchAndConvertCacheToObject(`posts_liked:${currentUserId}`);
-        if(likedPostsUsers) {
-            const likedPostsResult : TPostWithRelations[] = await assignLikedPostsToUser(likedPostsUsers);
+        const likedPostsCreators : Record<string, string> = await fetchAndConvertCacheToObject(`posts_liked:${currentUserId}`);
+        if(likedPostsCreators) {
+            const likedPostsResult : TPostWithRelations[] = await assignLikedPostsToSuggestion(likedPostsCreators);
             likedPosts.push(...likedPostsResult);
         }
 
@@ -130,16 +130,16 @@ export const suggestedPostsService = async (currentUserId : string) : Promise<TP
             TPostWithRelations[];
         }
 
-        const combinedPosts : TPostWithRelations[] = await mergeLikedAndTrendingPosts(likedPosts, suggestedPosts, currentUserPost, followingPosts);
+        const combinedPosts : TPostWithRelations[] = await mergeSuggestedPosts(likedPosts, suggestedPosts, currentUserPost, followingPosts);
         return combinedPosts;
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 }
 
-export const postLikeService = async (currentUserId : string, postId : string) => {
+export const likePostService = async (currentUserId : string, postId : string) => {
     try {
         const postDetails : TPostWithRelations = await findFirstPostWithPostId(postId);
         if(!postDetails) throw new ResourceNotFoundError();
@@ -153,13 +153,13 @@ export const postLikeService = async (currentUserId : string, postId : string) =
         postEventEmitter.emit('dislike-post', currentUserId, postDetails.userId, postId);
         return 'Post has been disliked';
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
 }
 
-const assignLikedPostsToUser = async (usersId : TPostAssignments) : Promise<TPostWithRelations[]> => {
+const assignLikedPostsToSuggestion = async (usersId : TPostAssignments) : Promise<TPostWithRelations[]> => {
     const matchedPosts : TPostWithRelations[] = [];
 
     const usersArray : TLikesArray[] = Object.entries(usersId).map(([userId, likedCount]) => ({userId, likedCount : +likedCount}));
@@ -185,7 +185,7 @@ const assignLikedPostsToUser = async (usersId : TPostAssignments) : Promise<TPos
     ) as TPostWithRelations[];
 }
 
-const mergeLikedAndTrendingPosts = async (likedPosts : TPostWithRelations[], trendingPosts : TPostWithRelations[], 
+const mergeSuggestedPosts = async (likedPosts : TPostWithRelations[], trendingPosts : TPostWithRelations[], 
     currentUserPost : TPostWithRelations | undefined, followingPosts : TModifiedFollowingsPost[]) : Promise<TPostWithRelations[]> => {
 
     const postMap = new Map<string, TPostWithRelations>();
@@ -203,7 +203,7 @@ const parsedPostsArray = (postsArray: TPostWithRelations[]): TPostWithRelations[
     const matchedPosts: TPostWithRelations[] = [];
 
     for (const post of postsArray) {
-        const fixedResult : TPostWithRelations = parseAndFixResult(post);
+        const fixedResult : TPostWithRelations = parseAndFixCacheResult(post);
         matchedPosts.push(fixedResult);
     }
     return matchedPosts;
@@ -213,17 +213,17 @@ const getCurrentUserLatestPost = async (currentUserId : string) : Promise<TPostW
     const currentUserPost : TPostWithRelations = await findFirstPostWithUserId(currentUserId);
     if(!currentUserPost) return undefined;
 
-    const fixedResult : TPostWithRelations = parseAndFixResult(currentUserPost);
+    const fixedResult : TPostWithRelations = parseAndFixCacheResult(currentUserPost);
     return fixedResult;
 }
 
-export const parseAndFixResult = (post : TPostWithRelations) : TPostWithRelations => {
+export const parseAndFixCacheResult = (post : TPostWithRelations) : TPostWithRelations => {
     const { id, text, image, userId, createdAt, updatedAt, user, comments, likes, tags } = post;
     return {
         id, text, image, userId, createdAt, updatedAt, user : typeof user === 'string' ? JSON.parse(user) : user, 
         comments : comments ? (typeof comments === 'string' ? JSON.parse(comments).length : comments.length) : 0, 
         likes : likes ? (typeof likes === 'string' ? JSON.parse(likes).length : likes.length) : 0, 
-        tags : tags as TInferSelectTag || ''
+        tags : tags as Pick<TInferSelectTag, 'tag'>[] || ''
     };
 }
 
@@ -232,12 +232,12 @@ const fixedResult = (posts : TFollowingsPost[]) : TModifiedFollowingsPost[] => {
         const { id, text, image, userId, createdAt, updatedAt, user, comments, likes, tags } = post;
         return {
             id, text, image, userId, createdAt, updatedAt, user, 
-            comments : comments.length, likes : likes.length, tags : tags as TInferSelectTag || ''
+            comments : comments.length, likes : likes.length, tags : tags as TInferSelectTag[] || ''
         }
     });
 }
 // 1. Add the following that i have liked their post must and must recent following suggest their post only 
-const getFollowingPosts = async (currentUserId : string) : Promise<TModifiedFollowingsPost[]> => {
+export const getFollowingPosts = async (currentUserId : string) : Promise<TModifiedFollowingsPost[]> => {
     const followingPostMap : Map<string, TFollowingsPost> = new Map<string, TFollowingsPost>();
 
     const followings : TFollowersPostRelations[] = await findManyFollowingPost(currentUserId, 15);
@@ -277,7 +277,7 @@ export const editPostService = async (currentUserId : string, postId : string, i
         postEventEmitter.emit('post_cache', postId);
         return updatedPost;
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -294,7 +294,7 @@ export const deletePostService = async (postId : string, currentUserId : string)
         postEventEmitter.emit('delete-post', currentPost.userId, postId);
         return 'Post has been deleted';
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }

@@ -23,7 +23,7 @@ export const getNotificationsService = async (currentUserId : string) : Promise<
         notificationEventEmitter.emit('read', currentUserId);
         return notifications;
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -36,7 +36,7 @@ export const clearNotificationsService = async (currentUserId : string) : Promis
         notificationEventEmitter.emit('clear', currentUserId);
         return 'Notifications Cleared';
         
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }

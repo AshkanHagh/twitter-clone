@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { CatchAsyncError } from '../middlewares/catchAsyncError';
-import type { TInferSelectPost, TInferSelectUserNoPass, TPostWithRelations } from '../types/index.type';
-import { createPostService, editPostService, suggestedPostsService, postLikeService, deletePostService } from '../services/post.service';
+import type { TInferSelectPost, TInferSelectUserNoPass, TModifiedFollowingsPost, TPostWithRelations } from '../types/index.type';
+import { createPostService, editPostService, suggestedPostsService, likePostService, deletePostService, getFollowingPosts } from '../services/post.service';
 
 export const createPost = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
@@ -30,7 +30,7 @@ export const likePost = CatchAsyncError(async (req : Request, res : Response, ne
         const { id : postId } = req.params as {id : string};
         const currentUserId : string = req.user!.id;
 
-        const message : string = await postLikeService(currentUserId, postId);
+        const message : string = await likePostService(currentUserId, postId);
         res.status(200).json({success : true, message});
         
     } catch (error) {
@@ -59,6 +59,17 @@ export const deletePost = CatchAsyncError(async (req : Request, res : Response, 
 
         const message : string = await deletePostService(postId, currentUserId);
         res.status(200).json({success : true, message});
+        
+    } catch (error) {
+        return next(error);
+    }
+});
+
+export const followedUsersPosts = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
+    try {
+        const currentUserId : string = req.user!.id;
+        const posts : TModifiedFollowingsPost[] = await getFollowingPosts(currentUserId);
+        res.status(200).json({success : true, posts});
         
     } catch (error) {
         return next(error);

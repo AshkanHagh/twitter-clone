@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
 import { CatchAsyncError } from '../middlewares/catchAsyncError';
-import type { TInferSelectUserNoPass, TInferSelectUserProfile, TInferUpdateUser, TUserProfile } from '../types/index.type';
-import { followUserService, getUserProfileService, searchUserService, suggestionForFollowService, updateAccountInfoService, updateAccountPasswordService, 
-    updateProfileInfoService } from '../services/user.service';
+import type { TInferSelectUserNoPass, TInferSelectUserProfile, TInferUpdateUser, TModifiedFollowingProfile, TUserProfile, 
+TUserWithRelations } from '../types/index.type';
+import { followersService, followingsService, followUserService, getUserProfileService, searchUserService, suggestionForFollowService, updateAccountInfoService, updateAccountPasswordService, updateProfileInfoService } from '../services/user.service';
 
 export const updateProfileInfo = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
@@ -19,9 +19,10 @@ export const updateProfileInfo = CatchAsyncError(async (req : Request, res : Res
 
 export const searchUser = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
+        const { startIndex, limit } = req.query as {startIndex : string, limit : string}
         const { username } = req.params as {username : string};
 
-        const foundUsers : TUserProfile[] = await searchUserService(username, req.user!.id);
+        const foundUsers : TUserProfile[] = await searchUserService(username, req.user!.id, +startIndex, +limit);
         res.status(200).json({success : true, foundUsers});
         
     } catch (error) {
@@ -81,9 +82,35 @@ export const updateAccountPassword = CatchAsyncError(async (req : Request, res :
 
 export const suggestionForFollow = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
     try {
-        const currentUserId = req.user!.id;
-        const result = await suggestionForFollowService(currentUserId);
-        res.status(200).json({success : true, result});
+        const currentUserId : string = req.user!.id;
+        const suggestedUsers : (TUserWithRelations | null)[] = await suggestionForFollowService(currentUserId);
+        res.status(200).json({success : true, suggestedUsers});
+        
+    } catch (error) {
+        return next(error);
+    }
+});
+
+export const followings = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
+    try {
+        const { startIndex, limit } = req.query as {startIndex : string, limit : string};
+        const currentUserId : string = req.user!.id;
+
+        const followings : TModifiedFollowingProfile[] | undefined = await followingsService(currentUserId, +startIndex, +limit);
+        res.status(200).json({success : true, followings});
+        
+    } catch (error) {
+        return next(error);
+    }
+});
+
+export const followers = CatchAsyncError(async (req : Request, res : Response, next : NextFunction) => {
+    try {
+        const { startIndex, limit } = req.query as {startIndex : string, limit : string};
+        const currentUserId : string = req.user!.id;
+
+        const followings : TModifiedFollowingProfile[] | undefined = await followersService(currentUserId, +startIndex, +limit);
+        res.status(200).json({success : true, followings});
         
     } catch (error) {
         return next(error);

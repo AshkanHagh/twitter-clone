@@ -3,7 +3,7 @@ import { findFirstPostWithPostId } from '../database/queries/post.query';
 import { deleteSave, findFirstSave, findManySavedPostsId, insertSavePost } from '../database/queries/save-post.query';
 import ErrorHandler from '../libs/utils/errorHandler';
 import type { TErrorHandler, TInferSelectSavePost, TPostWithRelations } from '../types/index.type';
-import { parseAndFixResult } from './post.service';
+import { parseAndFixCacheResult } from './post.service';
 
 export const savePostService = async (currentUserId : string, postId : string) : Promise<string> => {
     try {
@@ -24,7 +24,7 @@ export const savePostService = async (currentUserId : string, postId : string) :
         
         return 'Post has been unsaved successfully'
 
-    } catch (err) {
+    } catch (err : unknown) {
         const error = err as TErrorHandler;
         throw new ErrorHandler(`An error occurred : ${error.message}`, error.statusCode);
     }
@@ -44,7 +44,7 @@ export const savedPostsService = async (currentUserId : string) : Promise<TPostW
     const savedPosts : TPostWithRelations[] = await Promise.all(savedPostsId.map(async postId => {
         let savedPosts : TPostWithRelations;
 
-        const savedPostCache : TPostWithRelations = parseAndFixResult(await getAllFromHashCache(`post:${postId}`));
+        const savedPostCache : TPostWithRelations = parseAndFixCacheResult(await getAllFromHashCache(`post:${postId}`));
         savedPosts = savedPostCache;
         if(!savedPostCache || Object.keys(savedPostCache).length == 0) savedPosts = await findFirstPostWithPostId(postId);
 
