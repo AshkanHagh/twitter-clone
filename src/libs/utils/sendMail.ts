@@ -17,7 +17,7 @@ export const sendEmail = async (option : TMailOption) : Promise<void> => {
     });
 
     const mailOption = {
-        from : process.env.MAIL, to : option.email, subject : option.subject, html : option.html
+        from : process.env.SMTP_MAIL, to : option.email, subject : option.subject, html : option.html
     }
 
     await transport.sendMail(mailOption);

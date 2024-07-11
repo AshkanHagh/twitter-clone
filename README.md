@@ -1,6 +1,6 @@
 # Twitter Clone Project
 
-## [Version 1.0](https://your-project-v1-link.com) & [Version 2.0](https://your-project-v2-link.com)
+## [Version 1.0](https://your-project-v1-link.com)
 
 ## Introduction
 
@@ -108,7 +108,7 @@ SMTP_PASSWORD
 ORIGIN 
 ```
 
-### Start the app
+### Scripts
 ```shell
 bun run dev # Run in development mode with --watch
 bun run db:generate # Generate database schema with Drizzle
