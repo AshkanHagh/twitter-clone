@@ -24,7 +24,6 @@ This is a comprehensive Twitter clone built with modern technologies including [
   - Suggests users with the most followers.
   - Suggests users whose posts are frequently liked by the current user.
   - Suggests users followed by the people I follow.
-  - Suggests users who like similar posts as the current user.
 - **Save Posts**: Users can save posts.
 - **Tags**: Supports tagging posts.
 - **CRUD Operations**: Full CRUD operations for comments and replies.
