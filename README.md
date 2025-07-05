@@ -18,13 +18,13 @@ A full-featured Twitter clone built with modern technologies, offering authentic
 ## Tech Stack
 - **Backend**: [Bun](https://bun.sh/), [Express](https://expressjs.com/), [TypeScript](https://www.typescriptlang.org/)
 - **Database**: [PostgreSQL](https://www.postgresql.org/), [Drizzle ORM](https://github.com/drizzle-team/drizzle-orm)
-- **Cache & Queues**: [Redis](https://redis.io/)
+- **Cache**: [Redis](https://redis.io/)
 - **Storage**: [Cloudinary](https://cloudinary.com/)
 - **Security**: [Helmet](https://helmetjs.github.io/), JWT, [Joi](https://joi.dev/)
 - **Linting & Formatting**: [ESLint](https://eslint.org/), Prettier
 
 ## Architecture
-This project follows a **REST API** and **event-driven architecture** using Redis for event publishing and processing. This ensures scalability and decoupling between services.
+This project follows a **REST API** architecture, ensuring scalability and decoupling between services.
 
 ### Post Suggestion Algorithm
 The **Futures Algorithm** dynamically determines post visibility based on user interactions. It considers:
